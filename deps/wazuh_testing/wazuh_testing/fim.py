@@ -984,7 +984,41 @@ def callback_detect_end_scan(line):
         logger.warning(f"Couldn't load a log line into json object. Reason {e}")
 
 
+def callback_detect_scan_start(line):
+    """
+    Detect the start of a scheduled scan or initial scan.
+    """
+    msg = r'.*Sending FIM event: (.+)$'
+    match = re.match(msg, line)
+    if not match:
+        return None
+
+    try:
+        if json.loads(match.group(1))['type'] == 'scan_start':
+            return True
+    except (JSONDecodeError, AttributeError, KeyError) as e:
+        logger.warning(f"Couldn't load a log line into json object. Reason {e}")
+
+
+def callback_get_scan_timestap(line):
+    """
+    Get the timestamp for the end of the initial scan or a scheduled scan
+    """
+    msg = r'.*Sending FIM event: (.+)$'
+    match = re.match(msg, line)
+    if not match:
+        return None
+    try:
+        if json.loads(match.group(1))['type'] == 'scan_end':
+            return json.loads(match.group(1))['data']['timestamp']
+    except (JSONDecodeError, AttributeError, KeyError) as e:
+        logger.warning(f"Couldn't load a log line into json object. Reason {e}")
+
+
 def callback_detect_event(line):
+    """
+    Detect an 'event' type FIM log.
+    """
     msg = r'.*Sending FIM event: (.+)$'
     match = re.match(msg, line)
     if not match:
@@ -1287,13 +1321,6 @@ def callback_disk_quota_default(line):
         return match.group(1)
 
 
-def callback_diff_size_limit_value(line):
-    match = re.match(r'.*Maximum file size limit to generate diff information configured to \'(\d+) KB\'.*', line)
-
-    if match:
-        return match.group(1)
-
-
 def callback_deleted_diff_folder(line):
     match = re.match(r'.*Folder \'(.*)\' has been deleted.*', line)
 
@@ -1337,13 +1364,6 @@ def callback_detect_max_files_per_second(line):
     match = re.match(msg, line)
 
     return match is not None
-
-
-def callback_dbsync_no_data(line):
-    match = re.match(r'.*#!-fim_registry dbsync no_data (.+)', line)
-    if match:
-        return match.group(1)
-    return None
 
 
 def callback_detect_end_runtime_wildcards(line):
@@ -2273,6 +2293,16 @@ def detect_initial_scan(file_monitor):
                        error_message='Did not receive expected "File integrity monitoring scan ended" event')
 
 
+def detect_initial_scan_start(file_monitor):
+    """Detect initial scan start when restarting Wazuh.
+
+    Args:
+        file_monitor (FileMonitor): file log monitor to detect events
+    """
+    file_monitor.start(timeout=60, callback=callback_detect_scan_start,
+                       error_message='Did not receive expected "File integrity monitoring scan started" event')
+
+
 def detect_realtime_start(file_monitor):
     """Detect realtime engine start when restarting Wazuh.
 
@@ -2292,6 +2322,17 @@ def detect_whodata_start(file_monitor):
     file_monitor.start(timeout=60, callback=callback_real_time_whodata_started,
                        error_message='Did not receive expected'
                                      '"File integrity monitoring real-time Whodata engine started" event')
+
+
+def get_scan_timestamp(file_monitor):
+    """Get the timestamp for the for the end of a scan
+
+    Args:
+        file_monitor (FileMonitor): file log monitor to detect events
+    """
+    timestamp = file_monitor.start(timeout=60, callback=callback_get_scan_timestap,
+                       error_message='Did not receive expected "File integrity monitoring scan ended" event').result()
+    return timestamp
 
 
 def wait_for_audit(whodata, monitor):
