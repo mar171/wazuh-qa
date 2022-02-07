@@ -1,0 +1,69 @@
+deployment:
+  host_1:
+    provider:
+      vagrant:
+        enabled: true
+        vagrantfile_path: /tmp/wazuh_qa_ctl
+        vagrant_box: qactl/centos_8
+        vm_memory: 1024
+        vm_cpu: 1
+        vm_name: manager_test_general_settings_enabled_1642521072_47002a
+        vm_system: linux
+        label: manager_test_general_settings_enabled_1642521072_47002a
+        vm_ip: 10.150.50.21
+  host_2:
+    provider:
+      vagrant:
+        enabled: true
+        vagrantfile_path: /tmp/wazuh_qa_ctl
+        vagrant_box: qactl/centos_8
+        vm_memory: 1024
+        vm_cpu: 1
+        vm_name: agent_test_general_settings_enabled_1642521072_47053b
+        vm_system: linux
+        label: agent_test_general_settings_enabled_1642521072_47053b
+        vm_ip: 10.150.50.22
+  
+provision:
+  hosts:
+    host_1:
+      host_info:
+        ansible_connection: ssh
+        ansible_user: vagrant
+        ansible_password: vagrant
+        ansible_port: 22
+        ansible_python_interpreter: /usr/bin/python3
+        system: rpm
+        installation_files_path: /tmp
+        host: 10.150.50.21
+        wazuh_deployment:
+        type: package
+        target: manager
+        s3_package_url: https://packages.wazuh.com/4.x/yum/wazuh-manager-4.2.5-1.x86_64.rpm
+        installation_files_path: /tmp
+      #   health_check: false
+      wazuh_install_path: /var/ossec
+      qa_framework:
+        wazuh_qa_branch: 2469-refactor-test-providers-enabled
+        qa_workdir: /tmp/qa-ctl
+    host_2:
+      host_info:
+        ansible_connection: ssh
+        ansible_user: vagrant
+        ansible_password: vagrant
+        ansible_port: 22
+        ansible_python_interpreter: /usr/bin/python3
+        system: rpm
+        installation_files_path: /tmp
+        host: 10.150.50.22
+    wazuh_deployment:
+    type: package
+    target: agent
+    s3_package_url: https://packages.wazuh.com/4.x/yum/wazuh-agent-4.2.5-1.x86_64.rpm
+    installation_files_path: /tmp
+      #   health_check: false
+    wazuh_install_path: /var/ossec
+      qa_framework:
+        wazuh_qa_branch: 2469-refactor-test-providers-enabled
+        qa_workdir: /tmp/wazuh_qa_ctl
+    
