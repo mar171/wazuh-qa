@@ -7,9 +7,9 @@ deployment:
         vagrant_box: qactl/centos_8
         vm_memory: 1024
         vm_cpu: 1
-        vm_name: manager_test_general_settings_enabled_1642521072_47002a
+        vm_name: manager_e2e_auditing_user_commands
         vm_system: linux
-        label: manager_test_general_settings_enabled_1642521072_47002a
+        label: manager_e2e_auditing_user_commands
         vm_ip: 10.150.50.21
   host_2:
     provider:
@@ -19,9 +19,9 @@ deployment:
         vagrant_box: qactl/centos_8
         vm_memory: 1024
         vm_cpu: 1
-        vm_name: agent_test_general_settings_enabled_1642521072_47053b
+        vm_name: agent_e2e_auditing_user_commands
         vm_system: linux
-        label: agent_test_general_settings_enabled_1642521072_47053b
+        label: agent_e2e_auditing_user_commands
         vm_ip: 10.150.50.22
   
 provision:
@@ -44,7 +44,7 @@ provision:
       #   health_check: false
       wazuh_install_path: /var/ossec
       qa_framework:
-        wazuh_qa_branch: 2469-refactor-test-providers-enabled
+        wazuh_qa_branch: 2489-E2E-osquery-integration
         qa_workdir: /tmp/qa-ctl
     host_2:
       host_info:
@@ -64,6 +64,11 @@ provision:
       #   health_check: false
     wazuh_install_path: /var/ossec
       qa_framework:
-        wazuh_qa_branch: 2469-refactor-test-providers-enabled
+        wazuh_qa_branch: 2489-E2E-osquery-integration
         qa_workdir: /tmp/wazuh_qa_ctl
+tasks:
+	task_1: 
+         host_info: 
+         playbooks:
+         
     
