@@ -181,7 +181,7 @@ def generate_test_playbooks(parameters):
     manager_package_name = os.path.split(manager_package)[1]
     agent_package_name = os.path.split(agent_package)[1]
     expected_output = 'Active: active (running)'
-    check_localfile_command = 'grep -Pzo " +(?s)<localfile>\n +<log_format>audit.+?(?=localfile)localfile>" /var/ossec/etc/ossec.conf'
+    check_localfile_command = 'grep -Pzo " +(?s)<localfile>\n +<log_format>osquery.+?(?=localfile)localfile>" /var/ossec/etc/ossec.conf'
     os_platform = 'linux'
     package_destination = '/temp'
 
@@ -208,6 +208,7 @@ def generate_test_playbooks(parameters):
         }
     }
 
+    playbooks_info.update({'manager_install_playbook_parameters' : playbook_generator.install_wazuh(**manager_install_playbook_parameters)})
     playbooks_info.update({'agent_install_playbook_parameters': playbook_generator.install_wazuh(**agent_install_playbook_parameters)})
     playbooks_info.update({'run_osquery_integration': playbook_generator.run_linux_commands(**run_osquery_integration_parameters)})
 
