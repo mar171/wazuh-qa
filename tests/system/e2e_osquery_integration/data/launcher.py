@@ -6,28 +6,23 @@ from tempfile import gettempdir
 from wazuh_testing.qa_ctl import QACTL_LOGGER
 from wazuh_testing.qa_ctl.configuration.config_generator import QACTLConfigGenerator
 from wazuh_testing.qa_ctl.provisioning import local_actions
-from wazuh_testing.qa_ctl.provisioning.ansible import playbook_generator
 from wazuh_testing.tools import file, github_checks
 from wazuh_testing.tools.exceptions import QAValueError
 from wazuh_testing.tools.github_api_requests import WAZUH_QA_REPO
 from wazuh_testing.tools.logging import Logging
-from wazuh_testing.tools.s3_package import get_last_production_package_url, get_production_package_url
 from wazuh_testing.tools.time import get_current_timestamp
+from wazuh_testing.tools.s3_package import get_production_package_url, get_last_production_package_url
+from wazuh_testing.qa_ctl.provisioning.ansible import playbook_generator
 from wazuh_testing.qa_ctl.configuration.config_instance import ConfigInstance
 
 TMP_FILES = os.path.join(gettempdir(), 'e2e_osquery_integration')
-# /tmp/wazuh_auditing_commands
 WAZUH_QA_FILES = os.path.join(TMP_FILES, 'wazuh-qa')
-# /tmp/wazuh_auditing_commands/wazuh-qa
 CHECK_FILES_TEST_PATH = os.path.join(WAZUH_QA_FILES, 'tests', 'system', 'e2e_osquery_integration')
-# /tmp/wazuh_auditing_commands/tests/system/test_auditing_user_commands -> created test
+
 
 logger = Logging(QACTL_LOGGER)
 test_build_files = []
-user_command = {
-    'command': 'ping www.google.com',
-    'data_audit_exe': '/user/bin/ping'
-}
+user_command = 'ping -c 4 www.google.com'
 
 
 def get_parameters():
@@ -179,16 +174,12 @@ def generate_qa_ctl_configuration(parameters, playbooks_path, qa_ctl_config_gene
     return config_file_path
 
 def generate_test_playbooks(parameters):
-    """Generate the necessary playbooks to run the test.
-    Args:
-        parameters (argparse.Namespace): Object with the user parameters.
-    """
+
     playbooks_info = {}
     manager_package = get_last_production_package_url("manager", parameters.os_system)
     agent_package = get_last_production_package_url("agent", parameters.os_system)
     manager_package_name = os.path.split(manager_package)[1]
     agent_package_name = os.path.split(agent_package)[1]
-    check_audit_command = 'sysemctl status auditd'
     expected_output = 'Active: active (running)'
     check_localfile_command = 'grep -Pzo " +(?s)<localfile>\n +<log_format>audit.+?(?=localfile)localfile>" /var/ossec/etc/ossec.conf'
     os_platform = 'linux'
@@ -210,15 +201,15 @@ def generate_test_playbooks(parameters):
         'os_platform': os_platform
     }
 
-    run_check_auditd_command_parameters = {
-        'commands': [check_audit_command],
+    run_osquery_integration_parameters = {
+        'commands': [osquery_command],
         'playbook_parameters': {
             'become': True
         }
     }
 
     playbooks_info.update({'agent_install_playbook_parameters': playbook_generator.install_wazuh(**agent_install_playbook_parameters)})
-    playbooks_info.update({'run_check_auditd_command_parameters': playbook_generator.run_linux_commands(**run_check_auditd_command_parameters)})
+    playbooks_info.update({'run_osquery_integration': playbook_generator.run_linux_commands(**run_osquery_integration_parameters)})
 
     return(playbooks_info)
 
