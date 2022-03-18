@@ -9,11 +9,12 @@ Feature: Validate that the added filter label is displayed
     When The user nav to the agent page 
     And The user navigates to <Module Name>
     And The user add a new filter
+    And The user pin a filter
+    Then The user check if the filter is apply across the modules
     Examples:
       | Module Name           |
       | Security Events       |
       | Integrity Monitoring  |
-      | SCA                   |
       | System Auditing       |
       | Vulnerabilities       |
       | Mitre & Attack        |

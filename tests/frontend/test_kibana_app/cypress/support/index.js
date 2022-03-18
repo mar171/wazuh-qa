@@ -74,6 +74,6 @@ afterEach(() => {
 
 })
 
-after(() => {
+/*after(() => {
     updateCookies();
-})
+})*/
