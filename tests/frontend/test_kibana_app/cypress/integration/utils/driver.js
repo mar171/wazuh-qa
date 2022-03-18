@@ -27,6 +27,11 @@ export const fillField = (selector, text) => {
   return this;
 };
 
+export const fillSelectorField = (selector, text) => {
+  getElement(selector).type(text);
+  return this;
+};
+
 export const getElement = (selector) => {
   return cy.get(selector);
 };
