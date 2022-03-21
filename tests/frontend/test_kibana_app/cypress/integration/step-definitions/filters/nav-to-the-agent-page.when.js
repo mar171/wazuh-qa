@@ -1,4 +1,4 @@
-import { When } from 'cypress-cucumber-preprocessor/steps';
+import { And } from 'cypress-cucumber-preprocessor/steps';
 import { clickElement, elementIsVisible} from '../../utils/driver';
 import {
   wazuhMenuButton,
@@ -7,7 +7,7 @@ import {
   import {
   } from '../../pageobjects/agents/agents.page';
 
-When('The user nav to the agent page', () => {
+And('The user nav to the agent page', () => {
   clickElement(wazuhMenuButton);
   elementIsVisible(agentsButton);
   clickElement(agentsButton);

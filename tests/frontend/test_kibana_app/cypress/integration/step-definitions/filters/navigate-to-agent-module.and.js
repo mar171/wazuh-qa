@@ -6,8 +6,8 @@ import {
 import { AGENT_MODULES } from '../../utils/mappers/agent-modules-mapper';
    
 And('The user navigates to {}', (moduleName) => {
-  debugger;
-  clickElement(firstAgentList);
+  //elementIsVisible(firstAgentList);
+  //clickElement(firstAgentList);
   elementIsVisible(AGENT_MODULES[moduleName]);
   clickElement(AGENT_MODULES[moduleName]);
 });
