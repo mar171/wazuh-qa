@@ -21,7 +21,7 @@ from wazuh_testing.tools import LOG_FILE_PATH, WAZUH_CONF, get_service, ALERT_FI
 from wazuh_testing.tools.configuration import get_wazuh_conf, set_section_wazuh_conf, write_wazuh_conf
 from wazuh_testing.tools.file import truncate_file
 from wazuh_testing.tools.monitoring import QueueMonitor, FileMonitor, SocketController, close_sockets
-from wazuh_testing.tools.services import control_service, check_daemon_status, delete_dbs, start_daemons, stop_daemons
+from wazuh_testing.tools.services import control_service, check_daemon_status, delete_dbs, restart_daemons, stop_daemons
 from wazuh_testing.tools.time import TimeMachine
 from wazuh_testing import mocking
 from wazuh_testing.db_interface.agent_db import update_os_info
@@ -786,70 +786,6 @@ def configure_local_internal_options_module(request):
 
 
 @pytest.fixture(scope='function')
-def daemons_handler_function(request):
-    """Handler of Wazuh daemons.
-
-    Args:
-        request (fixture): Provide information on the executing test function.
-    """
-    try:
-        daemons_handler_configuration = getattr(request.module, 'daemons_handler_configuration')
-
-    except AttributeError as daemon_configuration_not_set:
-        logger.error('daemons_handler_configuration is not set')
-        raise daemon_configuration_not_set
-
-    start_daemons(daemons_handler_configuration['function'])
-
-    yield
-
-    stop_daemons(daemons_handler_configuration['function'])
-
-
-@pytest.fixture(scope='module')
-def daemons_handler_module(request):
-    """Handler of Wazuh daemons.
-
-    Args:
-        request (fixture): Provide information on the executing test function.
-    """
-    try:
-        daemons_handler_configuration = getattr(request.module, 'daemons_handler_configuration')
-
-    except AttributeError as daemon_configuration_not_set:
-        logger.error('daemons_handler_configuration is not set')
-        raise daemon_configuration_not_set
-
-    start_daemons(daemons_handler_configuration['module'])
-
-    yield
-
-    stop_daemons(daemons_handler_configuration['module'])
-
-
-@pytest.fixture(scope='module')
-def daemons_handler_configuration(get_configuration, request):
-    """Handler of Wazuh daemons.
-
-    Args:
-        get_configuration (fixture): Gets the current configuration of the test.
-        request (fixture): Provide information on the executing test function.
-    """
-    try:
-        daemons_handler_configuration = getattr(request.module, 'daemons_handler_configuration')
-
-    except AttributeError as daemon_configuration_not_set:
-        logger.error('daemons_handler_configuration is not set')
-        raise daemon_configuration_not_set
-
-    start_daemons(daemons_handler_configuration['configuration'])
-
-    yield
-
-    stop_daemons(daemons_handler_configuration['configuration'])
-
-
-@pytest.fixtureÇ(scope='function')
 def set_wazuh_configuration(configuration):
     """Set wazuh configuration
 
@@ -858,17 +794,24 @@ def set_wazuh_configuration(configuration):
     """
     # Save current configuration
     backup_config = conf.get_wazuh_conf()
-
     # Configuration for testing
     test_config = conf.set_section_wazuh_conf(configuration.get('sections'))
 
-    # Set new configuration
-    conf.write_wazuh_conf(test_config)
+    # Check if configuration has changed
+    config_changed = False
+    with open('/tmp/ossec.conf', 'w') as f:
+        f.writelines(test_config)
+    with open('/tmp/ossec.conf', 'r') as f:
+        new_config = f.readlines()
+    if backup_config != new_config:
+        config_changed = True
+        # Set new configuration
+        conf.write_wazuh_conf(test_config)
 
     # Set current configuration
     global_parameters.current_configuration = configuration
 
-    yield
+    yield config_changed
 
     # Restore previous configuration
     conf.write_wazuh_conf(backup_config)
@@ -1031,3 +974,30 @@ def setup_alert_monitor():
     log_monitor = FileMonitor(ALERTS_JSON_PATH)
 
     yield log_monitor
+
+
+@pytest.fixture(scope='function')
+def daemons_conf_handler(set_wazuh_configuration, request):
+
+    try:
+        daemons_handler_configuration = getattr(request.module, 'daemons_handler_configuration')
+
+    except AttributeError as daemon_configuration_not_set:
+        logger.error('daemons_handler_configuration is not set')
+        raise daemon_configuration_not_set
+
+    if 'force_restart' in daemons_handler_configuration:
+        logger.debug(f"Force restart set to {daemons_handler_configuration['force_restart']}")
+        force_restart = daemons_handler_configuration['force_restart']
+
+    config_changed = set_wazuh_configuration
+
+    if config_changed:
+        restart_daemons(daemons_handler_configuration)
+    else:
+        if force_restart:
+            restart_daemons(daemons_handler_configuration)
+
+    yield
+
+    stop_daemons(daemons_handler_configuration)

@@ -311,7 +311,7 @@ def control_event_log_service(control):
     time.sleep(1)
 
 
-def start_daemons(daemons_handler_configuration):
+def restart_daemons(daemons_handler_configuration):
     """Function that starts Wazuh daemons.
 
     It uses `daemons_handler_configuration` of each module in order to configure the behavior of the fixture.
