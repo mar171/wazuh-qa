@@ -54,9 +54,11 @@ before(() => {
     validateURLIncludes(OVERVIEW_URL);
 
 })
-
+//Arreglo que hizo mauri! 
 beforeEach(() => {
-    setCookies(cookieMock);
+    cy.getCookies().then((cook) => {
+        setCookies(cook);
+        });
     cy.setSessionStorage('healthCheck', 'executed');
     updateExpiryValueCookies();
     preserveCookie()
