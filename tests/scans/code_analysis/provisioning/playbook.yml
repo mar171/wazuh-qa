@@ -1,0 +1,21 @@
+---
+- name: Create our container (Manager)
+  hosts: localhost
+  tasks:
+    - name: Create a network
+      docker_network:
+        name: "{{ docker_network }}"
+    - docker_container:
+        name: "{{ manager_hostname }}"
+        image: "{{ image }}"
+        hostname: "{{ manager_hostname }}"
+        networks:
+          - name: "{{ docker_network }}"
+        privileged: yes
+
+- name: Wazuh Manager
+  hosts: wazuh-manager
+  vars:
+    manager_hostname: "wazuh-manager"
+  roles:
+    - name: "roles/manager-role"
