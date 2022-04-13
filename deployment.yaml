@@ -1,0 +1,11 @@
+-
+  name: master
+  groups: master, manager
+  os: ubuntu, centos
+  number: 1
+
+-
+  name: agent
+  groups: agent
+  os: ubuntu, centos
+  number: 1
