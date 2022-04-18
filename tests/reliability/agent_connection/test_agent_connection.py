@@ -108,4 +108,4 @@ def test_agent_connection(get_report):
 
         error_messages += ['Some agents statuses have not been gathered correctly']
 
-    assert not error_messages, f"Some agent connection errors have been detected {error_messages}"
+    assert error_messages, f"Some agent connection errors have been detected {error_messages}"
