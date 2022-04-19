@@ -1,11 +1,16 @@
--
-  name: master
-  groups: master, manager
-  os: ubuntu, centos
-  number: 1
+- 
+  host: master
+  role:
+    - master
+    - filebeat
+  type: EC2
+  os: 
+    - ubuntu
 
--
-  name: agent
-  groups: agent
-  os: ubuntu, centos
-  number: 1
+- 
+  host: agent
+  roles:
+    - active-agent
+  type: EC2
+  os: 
+    - ubuntu
