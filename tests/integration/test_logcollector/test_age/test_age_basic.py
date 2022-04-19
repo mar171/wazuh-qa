@@ -54,6 +54,7 @@ tags:
 '''
 import os
 import tempfile
+import sys
 
 import pytest
 import wazuh_testing.logcollector as logcollector
@@ -203,6 +204,7 @@ def test_configuration_age_basic(configure_local_internal_options_module, get_fi
     tags:
         - logs
     '''
+
     cfg = get_configuration['metadata']
     age_seconds = time_to_seconds(cfg['age'])
 

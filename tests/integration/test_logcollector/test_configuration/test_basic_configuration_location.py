@@ -160,6 +160,8 @@ def test_configuration_location(get_configuration, configure_environment, restar
     tags:
         - invalid_settings
     '''
+    if sys.platform == 'win32':
+        assert 1 == 0
     cfg = get_configuration['metadata']
 
     if wazuh_component == 'wazuh-manager':
