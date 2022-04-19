@@ -152,3 +152,11 @@ export const timestampToDate = (e) => {
   let newDates = e.getDate()+"/"+(e.getMonth()+1)+"/"+e.getFullYear()+" "+e.getHours()+":"+e.getMinutes()+":"+e.getSeconds();
   return newDates;
 };
+
+
+export const validateLink = (selector, link) => {
+  cy
+  .get(selector)
+  .invoke('attr', 'href')
+  .should('eq', link)
+};

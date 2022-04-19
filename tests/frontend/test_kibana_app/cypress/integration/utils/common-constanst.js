@@ -1,0 +1,1 @@
+export const hrefSlackCommunityLink = "https://wazuh.com/community/join-us-on-slack/"
