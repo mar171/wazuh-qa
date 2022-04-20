@@ -1,16 +1,14 @@
 - 
-  host: master
-  role:
-    - master
-    - filebeat
   type: EC2
   os: 
     - ubuntu
 
 - 
-  host: agent
-  roles:
-    - active-agent
   type: EC2
   os: 
-    - ubuntu
+    - centos
+
+- 
+  type: EC2
+  os: 
+    - windows
