@@ -6,9 +6,9 @@
             "issue_confidence": "HIGH",
             "issue_severity": "MEDIUM",
             "issue_text": "Use of insecure MD2, MD4, MD5, or SHA1 hash function.",
-            "line_number": 630,
+            "line_number": 629,
             "line_range": [
-                630
+                629
             ],
             "more_info": "https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b303-md5",
             "test_id": "B303",
@@ -115,9 +115,33 @@
     ],
     "to_fix": [
         {
+            "code": "         self.fixed_fields['log_format'] = log_format\n         self.last_token = \"\"\n         self.ut = [''] * 3\n",
+            "col_offset": 26,
+            "filename": "framework/scripts/wazuh-logtest.py",
+            "issue_confidence": "MEDIUM",
+            "issue_cwe": {
+                "id": 259,
+                "link": "https://cwe.mitre.org/data/definitions/259.html"
+            },
+            "issue_severity": "LOW",
+            "issue_text": "Possible hardcoded password: ''",
+            "line_number": 255,
+            "line_range": [
+                255
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b105_hardcoded_password_string.html",
+            "test_id": "B105",
+            "test_name": "hardcoded_password_string"
+        },
+        {
             "code": "         'port': 1516,\n         'bind_addr': '0.0.0.0',\n         'nodes': ['NODE_IP'],\n         'hidden': 'no'\n     }\n \n     try:\n         config_cluster = get_ossec_conf(section='cluster', conf_file=config_file, from_import=from_import)['cluster']\n     except WazuhException as e:\n64         if e.code == 1106:\n65             # If no cluster configuration is present in ossec.conf, return default configuration but disabling it.\n66             cluster_default_configuration['disabled'] = True\n",
+            "col_offset": 21,
             "filename": "framework/wazuh/core/cluster/utils.py",
             "issue_confidence": "MEDIUM",
+            "issue_cwe": {
+                "id": 605,
+                "link": "https://cwe.mitre.org/data/definitions/605.html"
+            },
             "issue_severity": "MEDIUM",
             "issue_text": "Possible binding to all interfaces.",
             "line_number": 56,
@@ -125,14 +149,19 @@
                 49,
                 58
             ],
-            "more_info": "https://bandit.readthedocs.io/en/latest/plugins/b104_hardcoded_bind_all_interfaces.html",
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b104_hardcoded_bind_all_interfaces.html",
             "test_id": "B104",
             "test_name": "hardcoded_bind_all_interfaces"
         },
         {
             "code": "         try:\n             subprocess.check_output([os_path.join(common.WAZUH_PATH, \"bin\", \"verify-agent-conf\"), '-f', tmp_file_path],\n                                     stderr=subprocess.STDOUT)\n         except subprocess.CalledProcessError as e:\n",
+            "col_offset": 12,
             "filename": "framework/wazuh/core/configuration.py",
             "issue_confidence": "HIGH",
+            "issue_cwe": {
+                "id": 78,
+                "link": "https://cwe.mitre.org/data/definitions/78.html"
+            },
             "issue_severity": "LOW",
             "issue_text": "subprocess call - check for execution of untrusted input.",
             "line_number": 710,
@@ -140,9 +169,28 @@
                 710,
                 711
             ],
-            "more_info": "https://bandit.readthedocs.io/en/latest/plugins/b603_subprocess_without_shell_equals_true.html",
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b603_subprocess_without_shell_equals_true.html",
             "test_id": "B603",
             "test_name": "subprocess_without_shell_equals_true"
+        },
+        {
+            "code": " def md5(fname):\n     hash_md5 = hashlib.md5()\n     with open(fname, \"rb\") as f:\n",
+            "col_offset": 15,
+            "filename": "framework/wazuh/core/utils.py",
+            "issue_confidence": "HIGH",
+            "issue_cwe": {
+                "id": 327,
+                "link": "https://cwe.mitre.org/data/definitions/327.html"
+            },
+            "issue_severity": "HIGH",
+            "issue_text": "Use of weak MD4, MD5, or SHA1 hash for security. Consider usedforsecurity=False",
+            "line_number": 630,
+            "line_range": [
+                630
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b324_hashlib.html",
+            "test_id": "B324",
+            "test_name": "hashlib"
         }
     ]
 }
