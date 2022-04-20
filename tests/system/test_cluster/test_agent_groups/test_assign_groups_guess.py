@@ -70,7 +70,7 @@ timeout = 60
 
 
 # Tests
-@pytest.mark.skip(reason='"It will be blocked by #13172, when it was solve we can enable again this test')
+#@pytest.mark.skip(reason='"It will be blocked by #13172, when it was solve we can enable again this test')
 @pytest.mark.parametrize("test_infra_managers", [test_infra_managers])
 @pytest.mark.parametrize("test_infra_agents", [test_infra_agents])
 @pytest.mark.parametrize("host_manager", [host_manager])
@@ -139,7 +139,7 @@ def test_assign_agent_to_a_group(agent_target, status_guess_agent_group, clean_e
         check_agent_groups(agent_id, group_id, test_infra_managers, host_manager)
 
         # Remove the agent
-        remove_cluster_agents(test_infra_managers[0], test_infra_agents, host_manager)
+        #remove_cluster_agents(test_infra_managers[0], test_infra_agents, host_manager)
 
         # Register agent with agent-auth
         agent_ip, agent_id, agent_name, manager_ip = register_agent(test_infra_agents[0], agent_target,
