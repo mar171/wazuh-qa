@@ -1,0 +1,20 @@
+- 
+  service: EC2
+  os: 
+    - ubuntu
+
+- 
+  service: EC2
+  os: 
+    - centos
+
+- 
+  service: EC2
+  os: 
+    - windows
+
+- 
+  service: EC2
+  os: 
+    - windows
+  
