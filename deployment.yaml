@@ -1,5 +1,4 @@
-- 
-  type: EC2
+: EC2
   os: 
     - ubuntu
 
@@ -12,3 +11,9 @@
   type: EC2
   os: 
     - windows
+
+- 
+  type: EC2
+  os: 
+    - windows
+  
