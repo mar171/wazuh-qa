@@ -1,6 +1,5 @@
 : EC2
-  os: 
-    - ubuntu
+   ubuntu
 
 - 
   type: EC2
