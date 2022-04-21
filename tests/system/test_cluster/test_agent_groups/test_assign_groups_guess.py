@@ -132,14 +132,15 @@ def test_assign_agent_to_a_group(agent_target, status_guess_agent_group, clean_e
     try:
         # Create new group and assing agent
         assign_agent_to_new_group(test_infra_managers[0], group_id, agent_id, host_manager)
-
+        # Remove agent from deafult to test single group guess (not multigroup)
+        host_manager.run_command(test_infra_managers[0], f"/var/ossec/bin/agent_groups -q -r -i {agent_id} -g default")
         time.sleep(timeout)
 
         # Check that agent has group set to group_test on Managers
         check_agent_groups(agent_id, group_id, test_infra_managers, host_manager)
 
         # Remove the agent
-        #remove_cluster_agents(test_infra_managers[0], test_infra_agents, host_manager)
+        remove_cluster_agents(test_infra_managers[0], test_infra_agents, host_manager)
 
         # Register agent with agent-auth
         agent_ip, agent_id, agent_name, manager_ip = register_agent(test_infra_agents[0], agent_target,
