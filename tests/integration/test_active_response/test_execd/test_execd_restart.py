@@ -159,7 +159,7 @@ def wait_invalid_input_message_line(line):
 
 def wait_shutdown_message_line(line):
     """Callback function to wait for Wazuh shutdown message."""
-    return True if "Shutdown received. Deleting responses." in line else None
+    return True if "Received exit signal. Starting exit process." in line else None
 
 
 def build_message(metadata, expected):
