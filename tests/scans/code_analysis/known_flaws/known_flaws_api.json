@@ -1,6 +1,62 @@
 {
     "false_positives": [],
     "to_fix": [
-
+        {
+            "code": "     # Build the request\n     md5_hash = md5(args.la_query.encode()).hexdigest()\n     url = f\"{url_analytics}/v1/workspaces/{args.workspace}/query\"\n",
+            "col_offset": 15,
+            "filename": "wodles/azure/azure-logs.py",
+            "issue_confidence": "HIGH",
+            "issue_cwe": {
+                "id": 327,
+                "link": "https://cwe.mitre.org/data/definitions/327.html"
+            },
+            "issue_severity": "HIGH",
+            "issue_text": "Use of weak MD4, MD5, or SHA1 hash for security. Consider usedforsecurity=False",
+            "line_number": 294,
+            "line_range": [
+                294
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b324_hashlib.html",
+            "test_id": "B324",
+            "test_name": "hashlib"
+        },
+        {
+            "code": "     logging.info(f\"Graph: Building the url.\")\n     md5_hash = md5(args.graph_query.encode()).hexdigest()\n     url = build_graph_url(offset=args.graph_time_offset, md5_hash=md5_hash)\n",
+            "col_offset": 15,
+            "filename": "wodles/azure/azure-logs.py",
+            "issue_confidence": "HIGH",
+            "issue_cwe": {
+                "id": 327,
+                "link": "https://cwe.mitre.org/data/definitions/327.html"
+            },
+            "issue_severity": "HIGH",
+            "issue_text": "Use of weak MD4, MD5, or SHA1 hash for security. Consider usedforsecurity=False",
+            "line_number": 473,
+            "line_range": [
+                473
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b324_hashlib.html",
+            "test_id": "B324",
+            "test_name": "hashlib"
+        },
+        {
+            "code": "     for container in containers:\n         md5_hash = md5(name.encode()).hexdigest()\n         offset = args.storage_time_offset\n",
+            "col_offset": 19,
+            "filename": "wodles/azure/azure-logs.py",
+            "issue_confidence": "HIGH",
+            "issue_cwe": {
+                "id": 327,
+                "link": "https://cwe.mitre.org/data/definitions/327.html"
+            },
+            "issue_severity": "HIGH",
+            "issue_text": "Use of weak MD4, MD5, or SHA1 hash for security. Consider usedforsecurity=False",
+            "line_number": 631,
+            "line_range": [
+                631
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b324_hashlib.html",
+            "test_id": "B324",
+            "test_name": "hashlib"
+        }
     ]
 }
