@@ -59,6 +59,20 @@
     ],
     "to_fix": [
         {
+            "code": "     for container in containers:\n         md5_hash = md5(name.encode()).hexdigest()\n         offset = args.storage_time_offset\n",
+            "filename": "wodles/azure/azure-logs.py",
+            "issue_confidence": "HIGH",
+            "issue_severity": "MEDIUM",
+            "issue_text": "Use of insecure MD2, MD4, MD5, or SHA1 hash function.",
+            "line_number": 631,
+            "line_range": [
+                631
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/latest/blacklists/blacklist_calls.html#b303-md5",
+            "test_id": "B303",
+            "test_name": "blacklist"
+        },
+        {
             "code": "     # Build the request\n     md5_hash = md5(args.la_query.encode()).hexdigest()\n     url = f\"{url_analytics}/v1/workspaces/{args.workspace}/query\"\n",
             "col_offset": 15,
             "filename": "wodles/azure/azure-logs.py",
@@ -115,6 +129,5 @@
             "test_id": "B324",
             "test_name": "hashlib"
         }
-
     ]
 }
