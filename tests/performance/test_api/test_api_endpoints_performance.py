@@ -10,27 +10,17 @@ restart_delay = safe_load(open(join(dirname(realpath(__file__)), 'data', 'config
                           )['configuration']['restart_delay']
 test_data = safe_load(open(join(dirname(realpath(__file__)), 'data', 'wazuh_api_endpoints_performance.yaml')))
 case_ids = [f"{case['method']}_{case['endpoint']}" for case in test_data['test_cases']]
-api_details = dict()
+api_details = {}
 
 xfailed_items = {
     '/active-response': {'message': 'Agent simulator not handling active-response messages: '
                                     'https://github.com/wazuh/wazuh-qa/issues/1266',
                          'method': 'put'},
-    '/agents/group': {'message': 'Slow agent-group files creation: https://github.com/wazuh/wazuh/issues/8625',
-                      'method': 'put'},
-    '/syscheck': {'message': 'The `queue/alerts/ar` socket does not accept agent lists: '
-                             'https://github.com/wazuh/wazuh/issues/9125',
-                  'method': 'put'},
-    '/rootcheck': {'message': 'The `queue/alerts/ar` socket does not accept agent lists: '
-                              'https://github.com/wazuh/wazuh/issues/9125',
-                   'method': 'put'},
     '/agents': {'message': 'The `queue/sockets/auth` socket does not accept agent lists: '
                            'https://github.com/wazuh/wazuh/issues/9127',
-                'method': 'delete'},
-    '/groups': {'message': 'Timeout caused by agent-group file manipulation in the Framework: '
-                           'https://github.com/wazuh/wazuh/issues/9141',
                 'method': 'delete'}
 }
+
 
 
 # Tests
