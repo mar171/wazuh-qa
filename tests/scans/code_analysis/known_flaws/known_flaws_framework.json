@@ -307,6 +307,63 @@
             "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b324_hashlib.html",
             "test_id": "B324",
             "test_name": "hashlib"
+        },
+        {
+            "code": " import struct\n import subprocess\n import sys\n",
+            "col_offset": 0,
+            "filename": "framework/scripts/wazuh_logtest.py",
+            "issue_confidence": "HIGH",
+            "issue_cwe": {
+                "id": 78,
+                "link": "https://cwe.mitre.org/data/definitions/78.html"
+            },
+            "issue_severity": "LOW",
+            "issue_text": "Consider possible security implications associated with the subprocess module.",
+            "line_number": 14,
+            "line_range": [
+                14
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/blacklists/blacklist_imports.html#b404-import-subprocess",
+            "test_id": "B404",
+            "test_name": "blacklist"
+        },
+        {
+            "code": "         self.fixed_fields['log_format'] = log_format\n         self.last_token = \"\"\n         self.ut = [''] * 3\n",
+            "col_offset": 26,
+            "filename": "framework/scripts/wazuh_logtest.py",
+            "issue_confidence": "MEDIUM",
+            "issue_cwe": {
+                "id": 259,
+                "link": "https://cwe.mitre.org/data/definitions/259.html"
+            },
+            "issue_severity": "LOW",
+            "issue_text": "Possible hardcoded password: ''",
+            "line_number": 255,
+            "line_range": [
+                255
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b105_hardcoded_password_string.html",
+            "test_id": "B105",
+            "test_name": "hardcoded_password_string"
+        },
+        {
+            "code": "         try:\n             proc = subprocess.Popen([wazuh_control, \"info\"], stdout=subprocess.PIPE)\n             (stdout, stderr) = proc.communicate()\n",
+            "col_offset": 19,
+            "filename": "framework/scripts/wazuh_logtest.py",
+            "issue_confidence": "HIGH",
+            "issue_cwe": {
+                "id": 78,
+                "link": "https://cwe.mitre.org/data/definitions/78.html"
+            },
+            "issue_severity": "LOW",
+            "issue_text": "subprocess call - check for execution of untrusted input.",
+            "line_number": 452,
+            "line_range": [
+                452
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b603_subprocess_without_shell_equals_true.html",
+            "test_id": "B603",
+            "test_name": "subprocess_without_shell_equals_true"
         }
     ]
 }
