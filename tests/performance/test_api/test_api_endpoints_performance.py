@@ -18,18 +18,18 @@ xfailed_items = {
                          'method': 'put'},
     '/agents/group': {'message': 'Slow agent-group files creation: https://github.com/wazuh/wazuh/issues/8625',
                       'method': 'put'},
-    '/syscheck': {'message': 'The `queue/alerts/ar` socket does not accept agent lists: '
-                             'https://github.com/wazuh/wazuh/issues/9125',
-                  'method': 'put'},
-    '/rootcheck': {'message': 'The `queue/alerts/ar` socket does not accept agent lists: '
-                              'https://github.com/wazuh/wazuh/issues/9125',
-                   'method': 'put'},
-    '/agents': {'message': 'The `queue/sockets/auth` socket does not accept agent lists: '
-                           'https://github.com/wazuh/wazuh/issues/9127',
-                'method': 'delete'},
-    '/groups': {'message': 'Timeout caused by agent-group file manipulation in the Framework: '
-                           'https://github.com/wazuh/wazuh/issues/9141',
-                'method': 'delete'}
+    # '/syscheck': {'message': 'The `queue/alerts/ar` socket does not accept agent lists: '
+    #                          'https://github.com/wazuh/wazuh/issues/9125',
+    #               'method': 'put'},
+    # '/rootcheck': {'message': 'The `queue/alerts/ar` socket does not accept agent lists: '
+    #                           'https://github.com/wazuh/wazuh/issues/9125',
+    #                'method': 'put'},
+    # '/agents': {'message': 'The `queue/sockets/auth` socket does not accept agent lists: '
+    #                        'https://github.com/wazuh/wazuh/issues/9127',
+    #             'method': 'delete'},
+    # '/groups': {'message': 'Timeout caused by agent-group file manipulation in the Framework: '
+    #                        'https://github.com/wazuh/wazuh/issues/9141',
+    #             'method': 'delete'}
 }
 
 
