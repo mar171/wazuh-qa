@@ -123,7 +123,8 @@ def get_configuration(request):
     ['- DEBUG - GCP message' for _ in range(100)],
     ['- DEBUG - GCP message' for _ in range(120)]
 ], indirect=True)
-def test_max_messages(get_configuration, configure_environment, reset_ossec_log, publish_messages, daemons_handler, wait_for_gcp_start):
+@pytest.mark.parametrize('publish_messages_amount' , [30, 100, 120])
+def test_max_messages(get_configuration, configure_environment, reset_ossec_log, publish_messages_amount, publish_messages, daemons_handler, wait_for_gcp_start):
     '''
     description: Check if the 'gcp-pubsub' module pulls a message number less than or equal to the limit set
                  in the 'max_messages' tag. For this purpose, the test will use a fixed limit and generate a
@@ -182,7 +183,7 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
                                           '"Starting fetching of logs" event')
 
     if publish_messages <= max_messages:
-        received_messages_number = f"Received and acknowledged {publish_messages} messages"
+        received_messages_number = f"Received and acknowledged {publish_messages_amount} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
                                                 callback=callback_generator(received_messages_number),
                                                 error_message='Did not receive expected '
@@ -199,7 +200,7 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
                                                     error_message='Did not receive expected '
                                                                   'Received and acknowledged x messages').result()
             assert int(number_pulled) == max_messages
-        received_messages_number = f"Received and acknowledged {int(publish_messages) - int(max_messages)} messages"
+        received_messages_number = f"Received and acknowledged {int(publish_messages_amount) - int(max_messages)} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
                                                 callback=callback_generator(received_messages_number),
                                                 error_message='Did not receive expected '
