@@ -87,6 +87,12 @@ wazuh_log_monitor = FileMonitor(LOG_FILE_PATH)
 test_data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 configurations_path = os.path.join(test_data_path, 'wazuh_conf.yaml')
 force_restart_after_restoring = False
+publish_messages = [
+    ['- DEBUG - GCP message' for _ in range(30)],
+    ['- DEBUG - GCP message' for _ in range(100)],
+    ['- DEBUG - GCP message' for _ in range(120)]
+]
+publish_messages_amount = [30, 100, 120]
 
 # configurations
 
@@ -118,12 +124,7 @@ def get_configuration(request):
 # tests
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Windows does not have support for Google Cloud integration.")
-@pytest.mark.parametrize('publish_messages', [
-    ['- DEBUG - GCP message' for _ in range(30)],
-    ['- DEBUG - GCP message' for _ in range(100)],
-    ['- DEBUG - GCP message' for _ in range(120)]
-], indirect=True)
-@pytest.mark.parametrize('publish_messages_amount' , [30, 100, 120])
+@pytest.mark.parametrize('publish_messages, publish_messages_amount', zip(publish_messages, publish_messages_amount))
 def test_max_messages(get_configuration, configure_environment, reset_ossec_log, publish_messages_amount, publish_messages, daemons_handler, wait_for_gcp_start):
     '''
     description: Check if the 'gcp-pubsub' module pulls a message number less than or equal to the limit set
