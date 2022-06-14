@@ -56,7 +56,7 @@ from wazuh_testing.fim import generate_params
 from wazuh_testing.gcloud import callback_detect_start_fetching_logs, callback_received_messages_number
 from wazuh_testing.tools import LOG_FILE_PATH
 from wazuh_testing.tools.configuration import load_wazuh_configurations
-from wazuh_testing.tools.monitoring import FileMonitor, callback_generator
+from wazuh_testing.tools.monitoring import FileMonitor
 from wazuh_testing.tools.file import truncate_file
 from google.cloud import pubsub_v1
 
@@ -168,7 +168,7 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
         #received_messages_amount = fr".*INFO: - INFO - Received and acknowledged {publish_messages} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
                                                 callback=callback_received_messages_number(publish_messages),
-                                                error_message='').result()
+                                                error_message=f'Did not receive expected {publish_messages}').result()
         # GCP might log messages from sources other than ourselves
         assert int(number_pulled) >= publish_messages
     else:
