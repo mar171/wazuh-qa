@@ -57,7 +57,7 @@ def detect_gcp_start(file_monitor):
 
 def callback_received_messages_number(amount_message):
     def new_callback(line):
-        received_messages_number = rf".*wm_gcp_pubsub_run\(\): INFO: - INFO - Received and acknowledged {amount_message} messages"
+        received_messages_number = rf".*wm_gcp_pubsub_run\(\): INFO: - INFO - Received and acknowledged ({amount_message}) messages"
         match = re.match(received_messages_number, line)
         if match:
             return match.group(1)
