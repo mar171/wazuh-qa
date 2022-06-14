@@ -177,14 +177,14 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
 
     # Wait till the fetch starts
     wazuh_log_monitor.start(timeout=global_parameters.default_timeout + time_interval,
-                            callback=callback_generator(received_messages_number),
+                            callback=callback_detect_start_fetching_logs,
                             error_message='Did not receive expected '
                                           '"Starting fetching of logs" event')
 
     if publish_messages <= max_messages:
         received_messages_number = f"Received and acknowledged {publish_messages} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
-                                                callback=callback_received_messages_number,
+                                                callback=callback_generator(received_messages_number),
                                                 error_message='Did not receive expected '
                                                               '- INFO - Received and acknowledged x messages').result()
         # GCP might log messages from sources other than ourselves
@@ -195,13 +195,13 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
         received_messages_number = f"Received and acknowledged {max_messages} messages"
         for i in range(ntimes):
             number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
-                                                    callback=callback_received_messages_number,
+                                                    callback=callback_generator(received_messages_number),
                                                     error_message='Did not receive expected '
                                                                   'Received and acknowledged x messages').result()
             assert int(number_pulled) == max_messages
         received_messages_number = f"Received and acknowledged {int(publish_messages) - int(max_messages)} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
-                                                callback=callback_received_messages_number,
+                                                callback=callback_generator(received_messages_number),
                                                 error_message='Did not receive expected '
                                                               '- INFO - Received and acknowledged x messages').result()
         # GCP might log messages from sources other than ourselves
