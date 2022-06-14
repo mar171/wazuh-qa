@@ -1,12 +1,8 @@
 '''
 copyright: Copyright (C) 2015-2021, Wazuh Inc.
-
            Created by Wazuh, Inc. <info@wazuh.com>.
-
            This program is free software; you can redistribute it and/or modify it under the terms of GPLv2
-
 type: integration
-
 brief: The Wazuh 'gcp-pubsub' module uses it to fetch different kinds of events
        (Data access, Admin activity, System events, DNS queries, etc.) from the
        Google Cloud infrastructure. Once events are collected, Wazuh processes
@@ -14,24 +10,18 @@ brief: The Wazuh 'gcp-pubsub' module uses it to fetch different kinds of events
        will check if the 'gcp-pubsub' module gets GCP messages up to the limit
        set in the 'max_messages' tag on the same operation when the number
        of them exceeds that limit.
-
 tier: 0
-
 modules:
     - gcloud
-
 components:
     - agent
     - manager
-
 daemons:
     - wazuh-analysisd
     - wazuh-monitord
     - wazuh-modulesd
-
 os_platform:
     - linux
-
 os_version:
     - Arch Linux
     - Amazon Linux 2
@@ -50,10 +40,8 @@ os_version:
     - Red Hat 8
     - Red Hat 7
     - Red Hat 6
-
 references:
     - https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/gcp-pubsub.html#max-messages
-
 tags:
     - limits
     - scan
@@ -87,12 +75,6 @@ wazuh_log_monitor = FileMonitor(LOG_FILE_PATH)
 test_data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 configurations_path = os.path.join(test_data_path, 'wazuh_conf.yaml')
 force_restart_after_restoring = False
-publish_messages = [
-    ['- DEBUG - GCP message' for _ in range(30)],
-    ['- DEBUG - GCP message' for _ in range(100)],
-    ['- DEBUG - GCP message' for _ in range(120)]
-]
-publish_messages_amount = [30, 100, 120]
 
 # configurations
 
@@ -124,8 +106,12 @@ def get_configuration(request):
 # tests
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Windows does not have support for Google Cloud integration.")
-@pytest.mark.parametrize('publish_messages, publish_messages_amount', zip(publish_messages, publish_messages_amount))
-def test_max_messages(get_configuration, configure_environment, reset_ossec_log, publish_messages_amount, publish_messages, daemons_handler, wait_for_gcp_start):
+@pytest.mark.parametrize('publish_messages', [
+    ['- DEBUG - GCP message' for _ in range(30)],
+    ['- DEBUG - GCP message' for _ in range(100)],
+    ['- DEBUG - GCP message' for _ in range(120)]
+], indirect=True)
+def test_max_messages(get_configuration, configure_environment, reset_ossec_log, publish_messages, daemons_handler, wait_for_gcp_start):
     '''
     description: Check if the 'gcp-pubsub' module pulls a message number less than or equal to the limit set
                  in the 'max_messages' tag. For this purpose, the test will use a fixed limit and generate a
@@ -134,9 +120,7 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
                  number exceeds that limit, the module will only pull messages up to the limit, and the rest
                  will be pulled in successive iterations, and if not, the module will pull all messages in
                  the same operation.
-
     wazuh_min_version: 4.2.0
-
     parameters:
         - get_configuration:
             type: fixture
@@ -153,23 +137,19 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
         - wait_for_gcp_start:
             type: fixture
             brief: Wait for the 'gpc-pubsub' module to start.
-
     assertions:
         - Verify that the 'gcp-pubsub' module pulls all GCP messages in one operation if
           the number of them does not exceed the limit set in the 'max_messages' tag.
         - Verify that the 'gcp-pubsub' module pulls GCP messages up to the limit set
           in the 'max_messages' tag when the number of them exceeds that limit, and
           the remaining ones are pulled in the successive operations.
-
     input_description: A test case (ossec_conf) is contained in an external YAML file (wazuh_conf.yaml)
                        which includes configuration settings for the 'gcp-pubsub' module. That is
                        combined with the message limit defined in the module. The GCP access
                        credentials can be found in the 'configuration_template.yaml' file.
-
     expected_output:
         - r'wm_gcp_main(): DEBUG.* Starting fetching of logs.'
         - r'.*wm_gcp_run.*: INFO.* - INFO - Received and acknowledged .* messages'
-
     tags:
         - logs
         - scheduled
@@ -183,27 +163,26 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
                             error_message='Did not receive expected '
                                           '"Starting fetching of logs" event')
 
-    if publish_messages_amount <= max_messages:
-        received_messages_number = f"Received and acknowledged {publish_messages_amount} messages"
+    if publish_messages <= max_messages:
+        received_messages_amount = f"Received and acknowledged {publish_messages} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
-                                                callback=callback_generator(received_messages_number),
-                                                error_message='Did not receive expected '
-                                                              '- INFO - Received and acknowledged x messages').result()
+                                                callback=callback_generator(received_messages_amount),
+                                                error_message=received_messages_amount).result()
         # GCP might log messages from sources other than ourselves
-        assert int(number_pulled) >= publish_messages_amount
+        assert int(number_pulled) >= publish_messages
     else:
-        ntimes = int(publish_messages_amount / max_messages)
-        remainder = int(publish_messages_amount % max_messages)
-        received_messages_number = f"Received and acknowledged {max_messages} messages"
+        ntimes = int(publish_messages / max_messages)
+        remainder = int(publish_messages % max_messages)
+        received_messages_amount = f"Received and acknowledged {max_messages} messages"
         for i in range(ntimes):
             number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
-                                                    callback=callback_generator(received_messages_number),
+                                                    callback=callback_generator(received_messages_amount),
                                                     error_message='Did not receive expected '
                                                                   'Received and acknowledged x messages').result()
             assert int(number_pulled) == max_messages
-        received_messages_number = f"Received and acknowledged {int(publish_messages_amount) - int(max_messages)} messages"
+        received_messages_number = f"Received and acknowledged {int(publish_messages) - int(max_messages)} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
-                                                callback=callback_generator(received_messages_number),
+                                                callback=callback_generator(received_messages_amount),
                                                 error_message='Did not receive expected '
                                                               '- INFO - Received and acknowledged x messages').result()
         # GCP might log messages from sources other than ourselves
