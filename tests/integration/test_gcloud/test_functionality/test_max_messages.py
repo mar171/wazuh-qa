@@ -68,7 +68,7 @@ from wazuh_testing.fim import generate_params
 from wazuh_testing.gcloud import callback_detect_start_fetching_logs, callback_received_messages_number
 from wazuh_testing.tools import LOG_FILE_PATH
 from wazuh_testing.tools.configuration import load_wazuh_configurations
-from wazuh_testing.tools.monitoring import FileMonitor
+from wazuh_testing.tools.monitoring import FileMonitor, callback_generator
 from wazuh_testing.tools.file import truncate_file
 from google.cloud import pubsub_v1
 
@@ -177,11 +177,12 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
 
     # Wait till the fetch starts
     wazuh_log_monitor.start(timeout=global_parameters.default_timeout + time_interval,
-                            callback=callback_detect_start_fetching_logs,
+                            callback=callback_generator(received_messages_number),
                             error_message='Did not receive expected '
                                           '"Starting fetching of logs" event')
 
     if publish_messages <= max_messages:
+        received_messages_number = f"Received and acknowledged {publish_messages} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
                                                 callback=callback_received_messages_number,
                                                 error_message='Did not receive expected '
@@ -191,13 +192,14 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
     else:
         ntimes = int(publish_messages / max_messages)
         remainder = int(publish_messages % max_messages)
-
+        received_messages_number = f"Received and acknowledged {max_messages} messages"
         for i in range(ntimes):
             number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
                                                     callback=callback_received_messages_number,
                                                     error_message='Did not receive expected '
                                                                   'Received and acknowledged x messages').result()
             assert int(number_pulled) == max_messages
+        received_messages_number = f"Received and acknowledged {int(publish_messages) - int(max_messages)} messages"
         number_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
                                                 callback=callback_received_messages_number,
                                                 error_message='Did not receive expected '
