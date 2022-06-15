@@ -71,7 +71,6 @@ interval = '25s'
 pull_messages_timeout = global_parameters.default_timeout + 60
 pull_on_start = 'no'
 max_messages = 100
-count_message = 0
 logging = 'info'
 wazuh_log_monitor = FileMonitor(LOG_FILE_PATH)
 test_data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
