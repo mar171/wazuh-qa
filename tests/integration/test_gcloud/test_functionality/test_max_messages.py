@@ -164,7 +164,7 @@ def test_max_messages(get_configuration, configure_environment, reset_ossec_log,
                                           '"Starting fetching of logs" event')
     
     numbers_pulled = wazuh_log_monitor.start(timeout=pull_messages_timeout,
-                                                callback=callback_received_messages_number(),
+                                                callback=callback_received_messages_number,
                                                 error_message='Did not receive expected '
                                                               '- INFO - Received and acknowledged x messages').result()
     if publish_messages <= max_messages:
