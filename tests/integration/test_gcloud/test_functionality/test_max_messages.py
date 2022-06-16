@@ -47,7 +47,6 @@ tags:
     - scan
     - maximum
 '''
-from itertools import count
 import os
 import sys
 import pytest
