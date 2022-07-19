@@ -114,6 +114,26 @@
             "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b324_hashlib.html",
             "test_id": "B324",
             "test_name": "hashlib"
+
+        },
+        {
+            "code": "     # Build the request\n     md5_hash = md5(args.la_query.encode()).hexdigest()\n     url = f\"{URL_ANALYTICS}/v1/workspaces/{args.workspace}/query\"\n",
+            "col_offset": 15,
+            "filename": "wodles/azure/azure-logs.py",
+            "issue_confidence": "HIGH",
+            "issue_cwe": {
+                "id": 327,
+                "link": "https://cwe.mitre.org/data/definitions/327.html"
+            },
+            "issue_severity": "HIGH",
+            "issue_text": "Use of weak MD4, MD5, or SHA1 hash for security. Consider usedforsecurity=False",
+            "line_number": 297,
+            "line_range": [
+                297
+            ],
+            "more_info": "https://bandit.readthedocs.io/en/1.7.4/plugins/b324_hashlib.html",
+            "test_id": "B324",
+            "test_name": "hashlib"
         }
     ]
 }
