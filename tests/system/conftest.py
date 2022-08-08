@@ -15,10 +15,13 @@ def clean_environment(test_infra_agents, test_infra_managers, host_manager):
 
 
 def pytest_addoption(parser):
+    import os
+    inventory_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                      'provisioning', 'one_manager_agent', 'inventory.yml')
     parser.addoption(
         '--inventory',
         action='append',
-        default=['inventory.yaml'],
+        default=[inventory_path],
         help='Add inventory path'
     )
 
