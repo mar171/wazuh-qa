@@ -32,5 +32,5 @@ def pytest_generate_tests(metafunc):
                       'provisioning', 'one_manager_agent', 'inventory.yml')
     if 'inventory' in metafunc.fixturenames:
         metafunc.parametrize('inventory', metafunc.config.getoption('inventory'))
-    else
+    else:
         metafunc.parametrize('inventory', inventory_path)
