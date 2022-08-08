@@ -20,13 +20,13 @@ def pytest_addoption(parser):
                       'provisioning', 'one_manager_agent', 'inventory.yml')
     parser.addoption(
         '--inventory',
-        action='append',
+        action='store',
         default=[inventory_path],
         help='Add inventory path'
     )
 
 
-def pytest_generate_tests(metafunc):
-    if 'inventory' in metafunc.fixturenames:
-        metafunc.parametrize('inventory', metafunc.config.getoption('inventory'))
+@pytest.fixture(scope="session")
+def inventory(pytestconfig):
+    return pytestconfig.getoption('inventory')
 
