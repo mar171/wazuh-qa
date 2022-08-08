@@ -47,7 +47,7 @@ from wazuh_testing.tools.monitoring import HostMonitor
 from wazuh_testing.tools.system import HostManager, clean_environment
 from wazuh_testing.tools import WAZUH_LOGS_PATH
 # from test_fim import create_folder_file, wait_for_fim_scan_end
-import test_fim
+import system.test_fim
 
 # Hosts
 testinfra_hosts = ["wazuh-manager", "wazuh-agent1"]

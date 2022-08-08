@@ -5,4 +5,4 @@ cd deps/wazuh_testing/
 python3 setup.py install
 sleep 2
 cd ../..
-python3 -m pytest tests/system/test_fim/test_files/test_prueba.py -vs --inventory /lala/aprove/inventory.yml
+python3 -m pytest tests/system/test_fim/test_files/test_file_cud.py -vs --inventory /home/qa/inventory.yml
