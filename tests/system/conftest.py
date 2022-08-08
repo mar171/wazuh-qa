@@ -29,5 +29,5 @@ def pytest_addoption(parser):
 def pytest_generate_tests(metafunc):
     option_value = metafunc.config.option.name
     if 'inventory' in metafunc.fixturenames and option_value is not None:
-        metafunc.parametrize("name", [option_value])
+        metafunc.parametrize('inventory', [option_value])
 
