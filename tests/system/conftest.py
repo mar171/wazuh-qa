@@ -21,7 +21,7 @@ def pytest_addoption(parser):
     parser.addoption(
         '--inventory',
         action='append',
-        default=[inventory_path],
+        default=[],
         help='Add inventory path'
     )
 
