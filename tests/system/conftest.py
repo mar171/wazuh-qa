@@ -20,7 +20,7 @@ def pytest_addoption(parser):
     #                   'provisioning', 'one_manager_agent', 'inventory.yml')
     parser.addoption(
         '--inventory',
-        action='store',
+        action='append',
         default=[],
         help='Add inventory path'
     )
