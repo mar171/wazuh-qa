@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from system import clean_cluster_logs, remove_cluster_agents
@@ -15,18 +17,14 @@ def clean_environment(test_infra_agents, test_infra_managers, host_manager):
 
 
 def pytest_addoption(parser):
-    import os
-    inventory_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                      'provisioning', 'one_manager_agent', 'inventory.yml')
     parser.addoption(
         '--inventory',
         action = 'store',
-        default = inventory_path,
-        help = 'Add inventory path'
+        default = [],
+        help = 'Please add an inventory path to run test.'
     )
 
 
 @pytest.fixture(scope="session")
 def inventory(pytestconfig):
     return pytestconfig.getoption('inventory')
-
