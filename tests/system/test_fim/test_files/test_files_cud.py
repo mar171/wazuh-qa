@@ -46,7 +46,7 @@ import pytest
 from wazuh_testing.tools.monitoring import HostMonitor
 from wazuh_testing.tools.system import HostManager, clean_environment
 from wazuh_testing.tools import WAZUH_LOGS_PATH
-# from system.test_fim import create_folder_file, wait_for_fim_scan_end
+from system.test_fim import create_folder_file, wait_for_fim_scan_end
 
 # Hosts
 testinfra_hosts = ["wazuh-manager", "wazuh-agent1"]
@@ -61,21 +61,6 @@ messages_path = [os.path.join(local_path, 'data/messages.yml'),
 tmp_path = os.path.join(local_path, 'tmp')
 scheduled_mode = 'testdir1'
 
-
-# Create folder and file inside
-def create_folder_file(host_manager, folder_path):
-    # Create folder
-    host_manager.run_command('wazuh-agent1', f'mkdir {folder_path}')
-
-    # Create file
-    host_manager.run_command('wazuh-agent1', f'touch {folder_path}/{folder_path}.txt')
-
-
-# Check that fim scan end
-def wait_for_fim_scan_end(HostMonitor, inventory_path, messages_path, tmp_path):
-    HostMonitor(inventory_path=inventory_path,
-                messages_path=messages_path,
-                tmp_path=tmp_path).run()
 
 @pytest.mark.parametrize('case', ['add', 'modify', 'delete'])
 @pytest.mark.parametrize('folder_path', ['testdir1', 'testdir2', 'testdir3'])
