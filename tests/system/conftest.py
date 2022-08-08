@@ -16,18 +16,21 @@ def clean_environment(test_infra_agents, test_infra_managers, host_manager):
 
 def pytest_addoption(parser):
     import os
-    inventory_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                      'provisioning', 'one_manager_agent', 'inventory.yml')
+    # inventory_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    #                   'provisioning', 'one_manager_agent', 'inventory.yml')
     parser.addoption(
         '--inventory',
         action='store',
-        default=[inventory_path],
+        default=[],
         help='Add inventory path'
     )
 
 
 def pytest_generate_tests(metafunc):
-    option_value = metafunc.config.option.name
-    if 'inventory' in metafunc.fixturenames and option_value is not None:
-        metafunc.parametrize('inventory', [option_value])
-
+    import os
+    inventory_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                      'provisioning', 'one_manager_agent', 'inventory.yml')
+    if 'inventory' in metafunc.fixturenames:
+        metafunc.parametrize('inventory', metafunc.config.getoption('inventory'))
+    else
+        metafunc.parametrize('inventory', inventory_path)
