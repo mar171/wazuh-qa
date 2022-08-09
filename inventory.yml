@@ -8,3 +8,5 @@ all:
       ansible_host: 172.31.6.69
       ansible_connection: ssh
       ansible_user: qa
+  vars:
+    ansible_ssh_private_key_file: "Ephemeral.pem"
