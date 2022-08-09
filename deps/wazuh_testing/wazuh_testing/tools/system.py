@@ -110,6 +110,9 @@ class HostManager:
             file_path (str) : Path of the file
         """
         with self.get_host(host).sudo():
+            print(("#")*50)
+            print(self.get_host(host).file(file_path).content_string)
+            print(("#")*50)
             return self.get_host(host).file(file_path).content_string
         return None
 
