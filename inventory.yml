@@ -10,3 +10,4 @@ all:
       ansible_user: qa
   vars:
     ansible_ssh_private_key_file: "Ephemeral.pem"
+    ansible_ssh_common_args: -o StrictHostKeyChecking=no
