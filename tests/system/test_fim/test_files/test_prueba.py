@@ -41,6 +41,7 @@ tags:
 """
 
 import os
+from time import sleep
 
 import pytest
 from wazuh_testing.tools.monitoring import HostMonitor
@@ -61,10 +62,25 @@ messages_path = [os.path.join(local_path, 'data/messages.yml'),
 tmp_path = os.path.join(local_path, 'tmp')
 scheduled_mode = 'testdir1'
 
+def create_folder_file_manager(host_manager, folder_path):
+    # Create folder
+    host_manager.run_command('wazuh-manager', f'mkdir {folder_path}')
 
-def test_file_cud(inventory):
+    # Create file
+    host_manager.run_command('wazuh-manager', f'touch {folder_path}/{folder_path}.txt')
+
+
+@pytest.mark.parametrize('case', ['add'])
+@pytest.mark.parametrize('folder_path', ['testdir1'])
+def test_file_cud(inventory, folder_path, case):
+
     host_manager = HostManager(inventory)
-
+    messages = messages_path[0]
+    enviroment_files = [('wazuh-manager', os.path.join(WAZUH_LOGS_PATH, 'ossec.log')),
+                        ('wazuh-agent1', os.path.join(WAZUH_LOGS_PATH, 'ossec.log'))]
+    clean_environment(host_manager, enviroment_files)
+    create_folder_file_manager(host_manager, folder_path)
+    sleep(60)
     # Restart Wazuh agent
-    host_manager.control_service(host='wazuh-agent1', service='wazuh', state="restarted")
-    host_manager.control_service(host='wazuh-manager', service='wazuh', state="restarted")
+    host_manager.control_service(host='wazuh-agent1', service='wazuh', state="started")
+    host_manager.control_service(host='wazuh-manager', service='wazuh', state="started")
