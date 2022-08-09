@@ -80,7 +80,9 @@ def test_file_cud(inventory, folder_path, case):
                         ('wazuh-agent1', os.path.join(WAZUH_LOGS_PATH, 'ossec.log'))]
     clean_environment(host_manager, enviroment_files)
     create_folder_file_manager(host_manager, folder_path)
-    sleep(60)
+
     # Restart Wazuh agent
     host_manager.control_service(host='wazuh-agent1', service='wazuh', state="started")
     host_manager.control_service(host='wazuh-manager', service='wazuh', state="started")
+
+    sleep(60)
