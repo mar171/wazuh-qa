@@ -62,9 +62,7 @@ tmp_path = os.path.join(local_path, 'tmp')
 scheduled_mode = 'testdir1'
 
 
-@pytest.mark.parametrize('case', ['add', 'modify', 'delete'])
-@pytest.mark.parametrize('folder_path', ['testdir1', 'testdir2', 'testdir3'])
-def test_file_cud(inventory, folder_path, case):
+def test_file_cud(inventory, case):
     host_manager = HostManager(inventory)
 
     # Restart Wazuh agent
