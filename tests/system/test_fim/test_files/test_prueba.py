@@ -85,4 +85,3 @@ def test_file_cud(inventory, folder_path, case):
     host_manager.control_service(host='wazuh-agent1', service='wazuh', state="started")
     host_manager.control_service(host='wazuh-manager', service='wazuh', state="started")
 
-    sleep(60)
