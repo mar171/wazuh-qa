@@ -69,3 +69,4 @@ def test_file_cud(inventory, folder_path, case):
 
     # Restart Wazuh agent
     host_manager.control_service(host='wazuh-agent1', service='wazuh', state="restarted")
+    host_manager.control_service(host='wazuh-manager', service='wazuh', state="restarted")
