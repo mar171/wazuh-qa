@@ -90,7 +90,8 @@ class HostManager:
         """
         if service == 'wazuh':
             service = 'wazuh-agent' if 'agent' in host else 'wazuh-manager'
-        self.get_host(host).ansible("service", f"name={service} state={state}", check=check)
+        with self.get_host(host).sudo():
+            self.get_host(host).ansible("service", f"name={service} state={state}", check=check)
 
     def clear_file(self, host: str, file_path: str, check: bool = False):
         """Truncate the specified file.
