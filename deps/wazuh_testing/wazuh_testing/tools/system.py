@@ -109,7 +109,9 @@ class HostManager:
             host (str): Hostname
             file_path (str) : Path of the file
         """
-        return self.get_host(host).file(file_path).content_string
+        with self.get_host(host).sudo():
+            return self.get_host(host).file(file_path).content_string
+        return None
 
     def apply_config(self, config_yml_path: str, dest_path: str = WAZUH_CONF, clear_files: list = None,
                      restart_services: list = None):
