@@ -49,7 +49,7 @@ from time import sleep
 from wazuh_testing.tools.monitoring import HostMonitor
 from wazuh_testing.tools.system import HostManager, clean_environment
 from wazuh_testing.tools import WAZUH_LOGS_PATH
-from test_fim import create_folder_file, query_db
+from system.test_fim import create_folder_file, query_db
 
 
 # Hosts
