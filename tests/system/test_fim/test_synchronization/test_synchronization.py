@@ -53,9 +53,9 @@ from test_fim import create_folder_file, query_db
 
 
 # Hosts
-inventory_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                              'provisioning', 'one_manager_agent', 'inventory.yml')
-host_manager = HostManager(inventory_path)
+# inventory_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+#                               'provisioning', 'one_manager_agent', 'inventory.yml')
+# host_manager = HostManager(inventory_path)
 local_path = os.path.dirname(os.path.abspath(__file__))
 messages_path = [os.path.join(local_path, 'data/messages.yml'),
                  os.path.join(local_path, 'data/delete_message.yml'),
@@ -74,7 +74,7 @@ enviroment_files = [('wazuh-manager', os.path.join(WAZUH_LOGS_PATH, 'ossec.log')
 @pytest.mark.parametrize('host', ['wazuh-agent1', 'wazuh-manager'])
 @pytest.mark.parametrize('case', ['add', 'modify', 'delete'])
 @pytest.mark.parametrize('folder_path', ['testdir1'])
-def test_synchronization(folder_path, case, host):
+def test_synchronization(inventory, folder_path, case, host):
     '''
     Description: The test will monitor a directory and apply changes when agent/manager is stopped.
     Finally, it will verify that the FIM 'Synchronization' event is generated
@@ -95,17 +95,18 @@ def test_synchronization(folder_path, case, host):
 
     assertions:
         - Verify that FIM sync events are generated correctly on the manager and agent sides.
-    
+
     input_description: Different test cases are included with Pytest parametrize.
                        The test cases are: add, modify and delete files.
-   
+
     expected_output:
-        - Different test cases are contained in external YAML file 
+        - Different test cases are contained in external YAML file
           (agent_initializing_synchronization.yml and manager_initializing_synchronization.yml)
     tags:
         - fim_basic_usage
         - scheduled
     '''
+    host_manager = HostManager(inventory)
     message_path = messages_path[3]
     # Clear logs, create folder to monitored and restart the service
     create_folder_file(host_manager, folder_path)
@@ -113,7 +114,7 @@ def test_synchronization(folder_path, case, host):
 
     # Check that the manager contains data to monitor
     try:
-        HostMonitor(inventory_path=inventory_path,
+        HostMonitor(inventory_path=inventory,
                     messages_path=messages_path[0],
                     tmp_path=tmp_path).run()
     except:
@@ -142,7 +143,7 @@ def test_synchronization(folder_path, case, host):
         message_path = messages_path[4]
 
     try:
-        HostMonitor(inventory_path=inventory_path,
+        HostMonitor(inventory_path=inventory,
                     messages_path=message_path,
                     tmp_path=tmp_path).run()
         if (case == 'delete'):

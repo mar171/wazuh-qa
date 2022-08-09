@@ -1,10 +1,10 @@
 all:
   hosts:
     wazuh-manager:
-      ansible_host: 172.31.15.211
+      ansible_host: 172.31.8.40
       ansible_connection: ssh
       ansible_user: qa
     wazuh-agent1:
-      ansible_host: 172.31.14.89
+      ansible_host: 172.31.6.69
       ansible_connection: ssh
       ansible_user: qa
