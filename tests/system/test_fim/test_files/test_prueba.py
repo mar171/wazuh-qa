@@ -62,7 +62,7 @@ tmp_path = os.path.join(local_path, 'tmp')
 scheduled_mode = 'testdir1'
 
 
-def test_file_cud(inventory, case):
+def test_file_cud(inventory):
     host_manager = HostManager(inventory)
 
     # Restart Wazuh agent
