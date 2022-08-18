@@ -11,6 +11,7 @@ brief: A Wazuh cluster is a group of Wazuh managers that work together to enhanc
        and scalability of the service. These tests will check the agent enrollment in a multi-server
        environment and how the agent manages the connections to the servers depending on their status.
 
+
 components:
     - agentd
 
