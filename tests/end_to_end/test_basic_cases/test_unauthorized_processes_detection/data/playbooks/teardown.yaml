@@ -1,13 +1,6 @@
-<<<<<<< HEAD
-- name: Cleanup agent environment
-  hosts: wazuh-agent
-  become: true
-=======
----
 - name: Cleanup Linux agent environment
   hosts: agents:&linux
   become: True
->>>>>>> 3165-e2e-minor-changes
   tasks:
 
     - name: Delete agent configuration
@@ -24,13 +17,8 @@
         os: linux
 
 - name: Cleanup manager environment
-<<<<<<< HEAD
-  hosts: wazuh-manager
-  become: true
-=======
   hosts: managers
-  become: True
->>>>>>> 3165-e2e-minor-changes
+  become: true
   tasks:
 
     - name: Delete added rules

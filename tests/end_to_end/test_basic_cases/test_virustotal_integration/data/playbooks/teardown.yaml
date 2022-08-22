@@ -1,11 +1,6 @@
 - name: Cleanup manager environment
-<<<<<<< HEAD
-  hosts: wazuh-manager
-  become: true
-=======
   hosts: managers
-  become: True
->>>>>>> 3165-e2e-minor-changes
+  become: true
   tasks:
 
     - name: Delete Virustotal integration and active response configuration
@@ -28,13 +23,8 @@
         os: linux
 
 - name: Cleanup agent environment
-<<<<<<< HEAD
-  hosts: wazuh-agent
-  become: true
-=======
   hosts: centos-agent
   become: True
->>>>>>> 3165-e2e-minor-changes
   tasks:
 
     - name: Delete syscheck configuration

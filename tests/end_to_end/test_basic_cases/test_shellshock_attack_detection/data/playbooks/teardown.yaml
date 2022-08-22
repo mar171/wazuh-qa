@@ -1,11 +1,6 @@
 - name: Cleanup manager environment
-<<<<<<< HEAD
-  hosts: wazuh-manager
-  become: true
-=======
   hosts: managers
-  become: True
->>>>>>> 3165-e2e-minor-changes
+  become: true
   tasks:
 
     - name: Delete localfile configuration
