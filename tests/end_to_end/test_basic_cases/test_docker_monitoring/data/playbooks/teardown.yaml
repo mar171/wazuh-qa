@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 - name: Cleanup environment
   hosts: wazuh-manager
   become: true
+=======
+---
+- name: Cleanup manager environment
+  hosts: managers
+  become: True
+>>>>>>> 3165-e2e-minor-changes
   tasks:
 
     - name: Delete the docker-listener module configuration

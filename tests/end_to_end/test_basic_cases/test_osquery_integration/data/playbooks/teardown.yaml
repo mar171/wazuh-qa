@@ -1,6 +1,11 @@
 - name: Cleanup manager environment
+<<<<<<< HEAD
   hosts: wazuh-manager
   become: true
+=======
+  hosts: managers
+  become: True
+>>>>>>> 3165-e2e-minor-changes
   tasks:
 
     - name: Delete Osquery configuration file
@@ -28,4 +33,4 @@
 
     - name: Uninstall stress
       shell: yum remove -y stress
-      when: (ansible_facts['distribution'] == "CentOS"
+      when: ansible_facts['distribution'] == "CentOS"

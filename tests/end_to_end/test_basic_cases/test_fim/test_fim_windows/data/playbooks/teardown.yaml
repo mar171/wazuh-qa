@@ -1,5 +1,5 @@
 - name: Cleanup Windows agent environment
-  hosts: wazuh-windows
+  hosts: windows-agent
   tasks:
 
     - name: Delete syscheck configuration
@@ -13,9 +13,16 @@
         path: C:\Test
         state: absent
 
-    - name: Restart wazuh-agent
+<<<<<<< HEAD
+    - name: Restart Wazuh
       include_role:
         name: manage_wazuh
         tasks_from: restart_wazuh.yaml
       vars:
         os: windows
+=======
+    - name: Restart Wazuh (Windows)
+      win_shell: |
+        net stop wazuh
+        net start wazuh
+>>>>>>> 3165-e2e-minor-changes
