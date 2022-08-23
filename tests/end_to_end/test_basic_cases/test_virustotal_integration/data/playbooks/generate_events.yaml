@@ -1,0 +1,22 @@
+- name: Generate events
+  hosts: centos-agent
+  tasks:
+
+    - name: "{{ event_description }}"
+      become: true
+      shell: "{{ shell }}"
+
+    - name: Wait for alert
+      wait_for:
+        timeout: 5
+
+- name: Get alerts file
+  hosts: manager
+  tasks:
+
+    - name: Get alerts.json
+      fetch:
+        src: /var/ossec/logs/alerts/alerts.json
+        dest: /tmp/
+        flat: true
+      become: true

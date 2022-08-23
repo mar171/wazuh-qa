@@ -1,0 +1,48 @@
+- name: Clean alerts file
+  hosts: manager
+  tasks:
+
+    - name: Truncate alert.json
+      shell: echo "" > /var/ossec/logs/alerts/alerts.json
+      become: true
+
+- name: Generate events
+  hosts: localhost
+  tasks:
+
+    - name: Attempt a SSH brute force attack
+      expect:
+        command: >
+          ssh {{item}}@{{ hostvars['centos-agent']['ansible_host'] }}
+          -i {{ hostvars['centos-agent']['ansible_ssh_private_key_file'] }}
+        responses:
+          (.*)continue connecting(.*): 'yes'
+          (?i)password: 1
+        timeout: 5
+      loop:
+        - test_user
+        - test_user
+        - test_user
+        - test_user
+        - test_user
+        - test_user
+        - test_user
+        - test_user
+      register: result
+      failed_when:
+        - "'Permission denied' not in result.stdout"
+
+    - name: Wait for alert
+      wait_for:
+        timeout: 5
+
+- name: Get alerts file
+  hosts: manager
+  tasks:
+
+    - name: Get alerts.json
+      fetch:
+        src: /var/ossec/logs/alerts/alerts.json
+        dest: /tmp/
+        flat: true
+      become: true

@@ -44,6 +44,6 @@
         "test_system/test_cluster/test_agent_groups/test_groups_sync_time.py"
     ],
     "end_to_end_environment": [
-        "end_to_end/basic_cases/test_audit/test_audit.py"
+        "end_to_end/test_basic_cases/test_audit/test_audit.py"
     ]
 }

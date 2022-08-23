@@ -1,0 +1,31 @@
+- name: Clean alerts file
+  hosts: manager
+  tasks:
+
+    - name: Truncate file alert.json
+      shell: echo "" > /var/ossec/logs/alerts/alerts.json
+      become: true
+
+- name: Generate events
+  hosts: windows-agent
+  tasks:
+
+    - name: Execute trigger-emotet.exe
+      win_shell: C:\temp\PSTools\psexec.exe -accepteula -nobanner -i 1 -d C:\temp\trigger-emotet.exe
+      register: output
+      failed_when: '"with process ID" not in output.stderr'
+
+- name: Get alerts file
+  hosts: manager
+  tasks:
+
+    - name: Wait for alert
+      wait_for:
+        timeout: 10
+
+    - name: Get alerts.json
+      fetch:
+        src: /var/ossec/logs/alerts/alerts.json
+        dest: /tmp/
+        flat: true
+      become: true
