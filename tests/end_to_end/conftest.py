@@ -6,7 +6,10 @@ import ansible_runner
 import pytest
 import json
 import yaml
+import uuid
 from tempfile import gettempdir
+from numpydoc.docscrape import FunctionDoc
+from py.xml import html
 
 from wazuh_testing.tools.file import remove_file
 from wazuh_testing import end_to_end as e2e
@@ -14,6 +17,10 @@ from wazuh_testing import end_to_end as e2e
 
 alerts_json = os.path.join(gettempdir(), 'alerts.json')
 suite_path = os.path.dirname(os.path.realpath(__file__))
+results = dict()
+
+def get_report_files():
+    return [alerts_json]
 
 
 def get_target_hosts_and_distros(test_suite_name, target_distros={'manager': [], 'agent': []}, target_hosts=[]):
@@ -348,3 +355,121 @@ def pytest_addoption(parser):
         type=str,
         help='Ansible roles path.',
     )
+
+
+# HARDCODE: pytest-html generates too long file names. This temp fix is to reduce the name of
+# the assets
+def create_asset(
+        self, content, extra_index, test_index, file_extension, mode="w"
+):
+    asset_file_name = "{}.{}".format(
+        str(uuid.uuid4()),
+        file_extension
+    )
+    asset_path = os.path.join(
+        os.path.dirname(self.logfile), "assets", asset_file_name
+    )
+
+    if not os.path.exists(os.path.dirname(asset_path)):
+        os.makedirs(os.path.dirname(asset_path))
+
+    relative_path = os.path.join("assets", asset_file_name)
+
+    kwargs = {"encoding": "utf-8"} if "b" not in mode else {}
+
+    with open(asset_path, mode, **kwargs) as f:
+        f.write(content)
+    return relative_path
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    pytest_html = item.config.pluginmanager.getplugin('html')
+    outcome = yield
+    report = outcome.get_result()
+    documentation = FunctionDoc(item.function)
+
+    # Add description, markers and tier to the report
+    report.description = '. '.join(documentation["Summary"])
+    report.tier = ', '.join(str(mark.kwargs['level']) for mark in item.iter_markers(name="tier"))
+    report.markers = ', '.join(mark.name for mark in item.iter_markers() if
+                               mark.name != 'tier' and mark.name != 'parametrize')
+
+    if report.location[0] not in results:
+        results[report.location[0]] = {'passed': 0, 'failed': 0, 'skipped': 0, 'xfailed': 0, 'error': 0}
+
+    extra = getattr(report, 'extra', [])
+    if report.when == 'call':
+        # Apply hack to fix length filename problem
+        pytest_html.HTMLReport.TestResult.create_asset = create_asset
+
+        # Add extended information from docstring inside 'Result' section
+        extra.append(pytest_html.extras.html('<div><h2>Test function details</h2></div>'))
+        for section in ('Extended Summary', 'Parameters'):
+            extra.append(pytest_html.extras.html(f'<div><h3>{section}</h3></div>'))
+            for line in documentation[section]:
+                extra.append(pytest_html.extras.html(f'<div>{line}</div>'))
+        arguments = dict()
+
+        # Add arguments of each text as a json file
+        for key, value in item.funcargs.items():
+            if isinstance(value, set):
+                arguments[key] = list(value)
+            try:
+                json.dumps(value)
+                arguments[key] = value
+            except (TypeError, OverflowError):
+                arguments[key] = str(value)
+        extra.append(pytest_html.extras.json(arguments, name="Test arguments"))
+
+        # Extra files to be added in 'Links' section
+        files = get_report_files()
+        for filepath in files:
+            if os.path.isfile(filepath):
+                with open(filepath, mode='r', errors='replace') as f:
+                    content = f.read()
+                    extra.append(pytest_html.extras.text(content, name=os.path.split(filepath)[-1]))
+
+        if report.passed or not report.skipped:
+            report.extra = extra
+
+        if report.longrepr is not None and report.longreprtext.split()[-1] == 'XFailed':
+            results[report.location[0]]['xfailed'] += 1
+        else:
+            results[report.location[0]][report.outcome] += 1
+
+    elif report.outcome == 'failed':
+        results[report.location[0]]['error'] += 1
+
+
+class SummaryTable(html):
+    class table(html.table):
+        style = html.Style(border='1px solid #e6e6e6', margin='16px 0px', color='#999', font_size='12px')
+
+    class td(html.td):
+        style = html.Style(padding='5px', border='1px solid #E6E6E6', text_align='left')
+
+    class th(html.th):
+        style = html.Style(padding='5px', border='1px solid #E6E6E6', text_align='left', font_weight='bold')
+
+
+def pytest_html_results_summary(prefix, summary, postfix):
+    postfix.extend([SummaryTable.table(
+        html.thead(
+            html.tr([
+                SummaryTable.th("Tests"),
+                SummaryTable.th("Failed"),
+                SummaryTable.th("Success"),
+                SummaryTable.th("XFail"),
+                SummaryTable.th("Error")]
+            ),
+        ),
+        [html.tbody(
+            html.tr([
+                SummaryTable.td(k),
+                SummaryTable.td(v['failed']),
+                SummaryTable.td(v['passed']),
+                SummaryTable.td(v['xfailed']),
+                SummaryTable.td(v['error']),
+            ])
+        ) for k, v in results.items()])])
