@@ -3,6 +3,7 @@ import logging
 from base64 import b64encode
 from threading import Thread, Event
 from time import sleep, time
+from requests.auth import HTTPBasicAuth
 
 import requests
 import urllib3
@@ -88,11 +89,11 @@ class APISimulator:
         authenticate_url = '/security/user/authenticate'
         basic_auth = {'Content-Type': 'application/json',
                       'Authorization': f"Basic {b64encode(f'{self.user}:{self.password}'.encode()).decode()}"}
-
+        wazuh_cred = HTTPBasicAuth('wazuh', 'wazuh')
         for _ in range(10):
             try:
                 self.logger.info('Trying to obtain API token')
-                response = requests.post(f"{self.base_url}{authenticate_url}", headers=basic_auth, verify=False)
+                response = requests.get(f"{self.base_url}{authenticate_url}", auth=wazuh_cred, verify=False)
                 if response.status_code != 200:
                     self.logger.error(f'Failed to obtain API token: {response.json()}')
                     self.logger.error('Retrying in 1s...')

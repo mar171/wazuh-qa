@@ -1,0 +1,16 @@
+requests:
+  -
+    endpoint: /cluster/manager1/configuration
+    method: get
+    parameters: {}
+    body: {}
+  -
+    endpoint: /cluster/manager2/configuration
+    method: get
+    parameters: {}
+    body: {}
+  -
+    endpoint: /cluster/manager3/configuration
+    method: get
+    parameters: {}
+    body: {}
