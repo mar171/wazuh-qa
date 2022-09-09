@@ -21,15 +21,11 @@ def set_agents_to_group(agent_id, group):
           }
     requests.put(f"{protocol}://{host}:{port}/agents/{agent_id}/group/{group}", verify=False, headers=headers)
 
-with open(api_request_file) as requests_data:
-  list_of_api_request = json.loads(requests_data.read())
-
-
 token = json.loads(get_api_token().content.decode())['data']['token']
 
 for i in range(600):
     id_formatted = f"{i:03d}"
-    set_agents_to_group(id_formatted, f"Group{i}")
+    set_agents_to_group(id_formatted, f"Group{i%200}")
     set_agents_to_group( id_formatted,f"Group{(i+1)%200}")
     set_agents_to_group( id_formatted,f"Group{(i+2)%200}")
     set_agents_to_group(id_formatted, f"Group{(i+3)%200}")
