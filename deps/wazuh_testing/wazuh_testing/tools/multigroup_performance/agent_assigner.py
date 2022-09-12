@@ -25,14 +25,5 @@ token = json.loads(get_api_token().content.decode())['data']['token']
 
 for i in range(600):
     id_formatted = f"{i:03d}"
-    set_agents_to_group(id_formatted, f"Group{i%200}")
-    set_agents_to_group( id_formatted,f"Group{(i+1)%200}")
-    set_agents_to_group( id_formatted,f"Group{(i+2)%200}")
-    set_agents_to_group(id_formatted, f"Group{(i+3)%200}")
-    set_agents_to_group( id_formatted,f"Group{(i+4)%200}")
-    set_agents_to_group(id_formatted, f"Group{(i+5)%200}")
-    set_agents_to_group(id_formatted, f"Group{(i+6)%200}")
-    set_agents_to_group(id_formatted, f"Group{(i+7)%200}")
-    set_agents_to_group(id_formatted, f"Group{(i+8)%200}")
-    set_agents_to_group(id_formatted, f"Group{(i+9)%200}")
-    set_agents_to_group(id_formatted, f"Group{(i+10)%200}")
+    for i in range(10):
+        set_agents_to_group(id_formatted, f"Group{(i)%200 + 1}")
