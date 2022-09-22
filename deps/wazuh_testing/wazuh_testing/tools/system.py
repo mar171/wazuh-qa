@@ -62,9 +62,26 @@ class HostManager:
             check (bool, optional): Ansible check mode("Dry Run"), by default it is enabled so no changes will be
                 applied. Default `False`.
         """
+        print("APT is present")
+        print(self.get_host(host).ansible("apt", "name=nginx state=present")["changed"])
+
+
         replace = f'{after}{replace}{before}'
-        self.get_host(host).ansible("replace", fr"path={path} regexp='{after}[\s\S]+{before}' replace='{replace}'",
-                                    check=check)
+        extra = f"path={path} regexp='{after}[\s\S]+{before}' replace='{replace}'"
+        print(extra)
+        self.get_host(host).ansible("ansible.builtin.replace", extra)
+
+    def change_agent_manager_address(self, host: str, address: str, check: bool = False):
+        configuration = [{'section': 'client', 'elements': [{'server': {'elements':
+                        [{'address': {'value': f"{address}"}}]}}]}]
+
+        change_configuration_python_command = f"""
+        python -c \"import wazuh_testing.tools.configuration as conf;configuration_ossec = conf.set_section_wazuh_conf({configuration});conf.write_wazuh_conf(configuration_ossec)\"
+        """
+
+        self.get_host(host).ansible("command", change_configuration_python_command, check=check, become=True)['stdout']
+        import pdb; pdb.set_trace()
+
 
     def modify_file_content(self, host: str, path: str = None, content: Union[str, bytes] = ''):
         """Create a file with a specified content and copies it to a path.
@@ -92,7 +109,7 @@ class HostManager:
         """
         if service == 'wazuh':
             service = 'wazuh-agent' if 'agent' in host else 'wazuh-manager'
-        self.get_host(host).ansible("service", f"name={service} state={state}", check=check)
+        self.get_host(host).ansible("service", f"name={service} state={state}", check=check, become=True)
 
     def clear_file(self, host: str, file_path: str, check: bool = False):
         """Truncate the specified file.
@@ -103,7 +120,7 @@ class HostManager:
             check (bool, optional): Ansible check mode("Dry Run"), by default it is enabled so no changes will be
                 applied. Default `False`
         """
-        self.get_host(host).ansible("copy", f"dest={file_path} content='' force=yes", check=check)
+        self.get_host(host).ansible("copy", f"dest={file_path} content='' force=yes", check=check, become=True)
 
     def clear_file_without_recreate(self, host: str, file_path: str, check: bool = False):
         """Truncate the specified file without recreating it.
@@ -254,7 +271,7 @@ class HostManager:
         Returns:
             stdout (str): The output of the command execution.
         """
-        return self.get_host(host).ansible("command", cmd, check=check)["stdout"]
+        return self.get_host(host).ansible("command", cmd, check=check, become=True)
 
     def run_shell(self, host: str, cmd: str, check: bool = False):
         """Run a shell command on the specified host and return its stdout.
@@ -316,3 +333,25 @@ def clean_environment(host_manager, target_files):
     """
     for target in target_files:
         host_manager.clear_file(host=target[0], file_path=target[1])
+
+
+
+
+class WazuhEnvironment(HostManager):
+    def __init__(self, inventory_path):
+        self.host_manager = HostManager(inventory_path)
+
+    def change_configuration(self, configuration_host, path='/var/ossec/etc/ossec.conf'):
+        temporal_configuration_file = '/tmp/temporal_configuration.json'
+        for host, configuration in configuration_host.items():
+            # Write configuration in a temporal json file
+            print(host)
+            print(temporal_configuration_file)
+            print(configuration)
+            configuration_text = json.dumps(configuration)
+
+            output = self.host_manager.get_host(host).ansible("copy", f"content='{configuration_text}' dest={temporal_configuration_file}", check=False, verbose=5)
+
+            output = self.host_manager.run_command(host, "wazuh-change-configuration" + f" --configuration-path {temporal_configuration_file}", check=False)
+            print(output)
+            import pdb;pdb.set_trace()

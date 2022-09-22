@@ -50,12 +50,15 @@ def clean_cluster_logs(hosts_list, host_manager):
 def remove_cluster_agents(wazuh_master, agents_list, host_manager):
     # Removes a list of agents from the cluster using manage_agents
     agent_id = get_agent_id(host_manager)
+    print(f"Removing cluster agent {agent_id}")
+
     for agent in agents_list:
+        print(f'Agent {agent}')
         host_manager.control_service(host=agent, service='wazuh', state="stopped")
         host_manager.clear_file(agent, file_path=os.path.join(WAZUH_PATH, 'etc', 'client.keys'))
     while (agent_id != ''):
-        host_manager.get_host(wazuh_master).ansible("command", f'{WAZUH_PATH}/bin/manage_agents -r {agent_id}',
-                                                    check=False)
+        print(host_manager.get_host(wazuh_master).ansible("command", f'{WAZUH_PATH}/bin/manage_agents -r {agent_id}',
+                                                    check=False, become=True))
         agent_id = get_agent_id(host_manager)
 
 
@@ -88,12 +91,14 @@ def delete_group_of_agents(host, id_group, host_manager):
     host_manager.run_command(host, f"/var/ossec/bin/agent_groups -q -r -g {id_group}")
 
 
-def check_agent_groups(agent_id, group_to_check, hosts_list, host_manager):
+def check_agent_groups(agent_id, group_to_check, host, host_manager):
     # Check the expected group is in the group data for the agent
-    for host in hosts_list:
-        group_data = host_manager.run_command(host, f'{WAZUH_PATH}/bin/agent_groups -s -i {agent_id}')
-        assert group_to_check in group_data, f"Did not recieve expected agent group: {group_to_check} in data \
-                                               {str(group_data)} in host {host}"
+    print(f"Checking {host}")
+    print(f"{agent_id}")
+    group_data = host_manager.run_command(host, f'{WAZUH_PATH}/bin/agent_groups -s -i {agent_id}')
+    print(f"{group_data}")
+    assert group_to_check in group_data, f"Did not recieve expected agent group: {group_to_check} in data \
+                                            {str(group_data)} in host {host}"
 
 
 # Check the expected group is in the group data for the agent in db
