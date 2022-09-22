@@ -379,18 +379,23 @@ class WazuhEnvironment(HostManager):
 
             self.modify_file_content(host, path=local_internal_option, content=local_internal_options_file_content)
 
-    def search_pattern(self, host, pattern, timeout, file='/var/ossec/logs/ossec.log', escape=False):
-            output_configuration = self.run_shell(host, "search-pattern" + f' -p "{pattern}" -t {timeout} -f {file}', check=False)
-            print(output_configuration)
-            if output_configuration['rc'] != 0:
-                raise Exception("Error: Pattern not found")
+    def search_pattern(self, host, pattern, timeout, file=['/var/ossec/logs/ossec.log'], escape=False):
+        pattern_join = "\"" + '" "'.join(pattern) + "\""
+        timeout_join = ' '.join(timeout)
+        file_join = ' '.join(file)
+
+        output_configuration = self.run_shell(host, "search-pattern" + f' -p {pattern_join} -t {timeout_join} -f {file_join}', check=False)
+        print(output_configuration)
+        if output_configuration['rc'] != 0:
+            raise Exception("Error: Pattern not found")
 
     def multipattern_search(self, multipattern_search, file='/var/ossec/logs/ossec.log', escape=False):
         threads = []
         for host, patterns in multipattern_search.items():
             threat = threading.Thread(target=self.search_pattern, args=(host, [value['regex'] for value in patterns],
-                                [value['timeout'] for value in patterns],
+                                [str(value['timeout']) for value in patterns],
                                 [value['file'] for value in patterns]))
+            threat.start()
         for t in threads:
             t.join()
 

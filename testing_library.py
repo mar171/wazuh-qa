@@ -33,13 +33,13 @@ config_local_int = {'wazuh-agent1': {'remoted.debug': 2}}
 search_pattern = {
    'wazuh-agent1' : [
        {
-           'regex': "INFO",
-           "path": "/var/ossec/logs/ossec.log",
+           'regex': ".*INFO.*",
+           "file": "/var/ossec/logs/ossec.log",
            "timeout": 50
        },
        {
-           'regex': "INFO",
-           "path": "/var/ossec/logs/ossec.log",
+           'regex': ".*INFO.*",
+           "file": "/var/ossec/logs/ossec.log",
            "timeout": 50
        }
    ]
@@ -47,4 +47,4 @@ search_pattern = {
 
 
 
-we.search_pattern(search_pattern)
+we.multipattern_search(search_pattern)

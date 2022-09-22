@@ -29,7 +29,7 @@ def main():
     arg_parser = argparse.ArgumentParser()
 
     arg_parser.add_argument('-p', '--pattern', metavar='patterns', type=str, required=True, nargs="*",
-                            default=None, help='Pattern to search', dest='pattern')
+                            default=None, help='Pattern to search', dest='patterns')
 
     arg_parser.add_argument('-f', '--file', metavar='file', type=str, required=True, nargs="*",
                             default=None, help='File to search the pattern', dest='file')

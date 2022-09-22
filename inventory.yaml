@@ -1,0 +1,77 @@
+manager:
+  hosts:
+    wazuh-master:
+      ip: 172.31.15.181
+      version: 4.4.0
+      revision: 0.40400.20220808
+      repository: warehouse-test
+      type: master
+      os: centos
+      service: EC2
+      resources:
+        cpu: 4
+        memory: 8192
+      ansible_host: 172.31.15.181
+      ansible_user: qa
+      ansible_connection: ssh
+      os_name: linux
+      ansible_python_interpreter: /usr/local/bin/python3.10
+
+    wazuh-worker1:
+      ip: 172.31.3.16
+      version: 4.4.0
+      revision: 0.40400.20220808
+      repository: warehouse-test
+      type: master
+      os: centos
+      service: EC2
+      resources:
+        cpu: 4
+        memory: 8192
+      ansible_host: 172.31.3.16
+      ansible_user: qa
+      ansible_connection: ssh
+      os_name: linux
+      ansible_python_interpreter: /usr/local/bin/python3.10
+
+  vars: {}
+agent:
+  children:
+    linux:
+      hosts:
+        wazuh-agent1:
+          ip: 172.31.15.66
+          version: 4.4.0
+          revision: 0.40400.20220808
+          repository: warehouse-test
+          manager: centos-manager
+          os: ubuntu
+          service: EC2
+          resources:
+            cpu: 2
+            memory: 4096
+          ansible_host: 172.31.15.66
+          ansible_user: qa
+          ansible_connection: ssh
+          os_name: linux
+          manager_ip: 172.31.3.16
+          ansible_python_interpreter: /usr/local/bin/python3.10
+        wazuh-agent2:
+          ip: 172.31.62.145
+          version: 4.4.0
+          revision: 0.40400.20220808
+          repository: warehouse-test
+          manager: centos-manager
+          os: centos
+          service: EC2
+          ansible_host: 172.31.62.145
+          ansible_user: qa
+          ansible_connection: ssh
+          os_name: linux
+          manager_ip: 172.31.15.181
+          ansible_python_interpreter: /usr/local/bin/python3.10
+all:
+  vars:
+    ansible_ssh_common_args: -o StrictHostKeyChecking=no
+    ansible_winrm_server_cert_validation: ignore
+    ansible_ssh_private_key_file: /home/rebits/.ssh/JenkinsEphemeral2.pem
