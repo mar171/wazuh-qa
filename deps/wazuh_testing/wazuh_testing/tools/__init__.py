@@ -7,11 +7,19 @@ import platform
 import subprocess
 import sys
 
+WAZUH_PATH_LINUX = os.path.join('/', 'var', 'ossec')
+WAZUH_CONF_LINUX = os.path.join('etc','ossec.conf')
+WAZUH_LOCAL_INTERNAL_OPTIONS_LINUX = os.path.join(WAZUH_PATH_LINUX, 'etc', 'local_internal_options.conf')
+
+WAZUH_PATH_WINDOWS = os.path.join("C:", os.sep, "Program Files (x86)", "ossec-agent")
+WAZUH_CONF_WINDOWS = os.path.join(WAZUH_PATH_WINDOWS, 'ossec.conf')
+WAZUH_LOCAL_INTERNAL_OPTIONS_WINDOWS = os.path.join(WAZUH_CONF_WINDOWS, 'local_internal_options.conf')
+
 
 if sys.platform == 'win32':
-    WAZUH_PATH = os.path.join("C:", os.sep, "Program Files (x86)", "ossec-agent")
-    WAZUH_CONF = os.path.join(WAZUH_PATH, 'ossec.conf')
-    WAZUH_LOCAL_INTERNAL_OPTIONS = os.path.join(WAZUH_PATH, 'local_internal_options.conf')
+    WAZUH_PATH = WAZUH_PATH_WINDOWS
+    WAZUH_CONF = WAZUH_CONF_WINDOWS
+    WAZUH_LOCAL_INTERNAL_OPTIONS = WAZUH_LOCAL_INTERNAL_OPTIONS
     WAZUH_SOURCES = os.path.join('/', 'wazuh')
     AGENT_CONF = os.path.join(WAZUH_PATH, 'shared', 'agent.conf')
     LOG_FILE_PATH = os.path.join(WAZUH_PATH, 'ossec.log')

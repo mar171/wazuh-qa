@@ -45,6 +45,7 @@ scripts_list = [
     'unsync-agents=wazuh_testing.scripts.unsync_agents:main',
     # System tools scripts
     'change-configuration=wazuh_testing.scripts.system.change_configuration:main'
+    'search-pattern=wazuh_testing.scripts.system.search_pattern:main'
 ]
 
 

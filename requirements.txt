@@ -27,7 +27,7 @@ requests==2.23.0
 scipy>=1.0; platform_system == "Linux" or platform_system == "Darwin" or platform_system=='Windows'
 seaborn>=0.11.1; platform_system == "Linux" or platform_system == "Darwin" or platform_system=='Windows'
 setuptools~=56.0.0
-testinfra==6.8.0
+pytest-testinfra==6.8.0
 jq>=1.1.2; platform_system == "Linux" or platform_system == "Darwin"
 cryptography==3.3.2; platform_system == "Linux" or platform_system == "Darwin" or platform_system=='Windows'
 urllib3
