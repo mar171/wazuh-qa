@@ -28,24 +28,22 @@ def make_callback(pattern, prefix="wazuh", escape=False):
 def main():
     arg_parser = argparse.ArgumentParser()
 
-    arg_parser.add_argument('-p', '--pattern', metavar='pattern', type=str, required=True,
+    arg_parser.add_argument('-p', '--pattern', metavar='patterns', type=str, required=True, nargs="*",
                             default=None, help='Pattern to search', dest='pattern')
 
-    arg_parser.add_argument('-f', '--file', metavar='file', type=str, required=True,
+    arg_parser.add_argument('-f', '--file', metavar='file', type=str, required=True, nargs="*",
                             default=None, help='File to search the pattern', dest='file')
 
-    arg_parser.add_argument('-t', '--timeout', metavar='timeout', type=int, required=True,
+    arg_parser.add_argument('-t', '--timeout', metavar='timeout', type=int, required=True, nargs="*",
                             default=None, help='Timeout', dest='timeout')
 
     args = arg_parser.parse_args()
 
-    wazuh_log_monitor = FileMonitor(args.file)
-    callback_search = make_callback(pattern=args.pattern, prefix=None)
-
-    match = wazuh_log_monitor.start(timeout=args.timeout, callback=callback_search, error_message="Regex not found").result()
-
-    print(str(match.group(0)))
-    print(list(match.groups()))
+    for regex, file, timeout in zip(args.patterns, args.file, args.timeout):
+        wazuh_log_monitor = FileMonitor(file)
+        callback_search = make_callback(pattern=regex, prefix=None)
+        match = wazuh_log_monitor.start(timeout=timeout, callback=callback_search, error_message="Regex not found").result()
+        print(f"Regex {regex}: {[str(match.group(0))] + list(match.groups())}")
 
 if __name__ == '__main__':
     main()

@@ -4,6 +4,7 @@
 
 import json
 import tempfile
+import threading
 import xml.dom.minidom as minidom
 from typing import Union
 import os
@@ -383,6 +384,15 @@ class WazuhEnvironment(HostManager):
             print(output_configuration)
             if output_configuration['rc'] != 0:
                 raise Exception("Error: Pattern not found")
+
+    def multipattern_search(self, multipattern_search, file='/var/ossec/logs/ossec.log', escape=False):
+        threads = []
+        for host, patterns in multipattern_search.items():
+            threat = threading.Thread(target=self.search_pattern, args=(host, [value['regex'] for value in patterns],
+                                [value['timeout'] for value in patterns],
+                                [value['file'] for value in patterns]))
+        for t in threads:
+            t.join()
 
     def get_host_variables(self, host):
         return self.get_host(host).ansible.get_variables()

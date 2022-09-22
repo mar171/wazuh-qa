@@ -28,4 +28,23 @@ config_local_int = {'wazuh-agent1': {'remoted.debug': 2}}
 
 #we.change_local_internal_option(config_local_int)
 
-we.search_pattern('wazuh-agent1', ".*Analyzing file:.*", 30)
+
+
+search_pattern = {
+   'wazuh-agent1' : [
+       {
+           'regex': "INFO",
+           "path": "/var/ossec/logs/ossec.log",
+           "timeout": 50
+       },
+       {
+           'regex': "INFO",
+           "path": "/var/ossec/logs/ossec.log",
+           "timeout": 50
+       }
+   ]
+}
+
+
+
+we.search_pattern(search_pattern)
