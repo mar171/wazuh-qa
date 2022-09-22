@@ -26,4 +26,6 @@ configuration = {'wazuh-agent1': [{'section': 'client', 'elements': [{'server': 
 
 config_local_int = {'wazuh-agent1': {'remoted.debug': 2}}
 
-we.change_local_internal_option(config_local_int)
+#we.change_local_internal_option(config_local_int)
+
+we.search_pattern('wazuh-agent1', ".*Analyzing file:.*", 30)

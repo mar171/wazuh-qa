@@ -289,7 +289,7 @@ class HostManager:
         Returns:
             stdout (str): The output of the command execution.
         """
-        return self.get_host(host).ansible('shell', cmd, check=check)['stdout']
+        return self.get_host(host).ansible('shell', cmd, check=check, become=True)
 
     def get_host_ip(self, host: str, interface: str):
         """Get the Ansible object for communicating with the specified host.
@@ -378,8 +378,9 @@ class WazuhEnvironment(HostManager):
 
             self.modify_file_content(host, path=local_internal_option, content=local_internal_options_file_content)
 
-    def search_pattern(self, host, pattern, timeout, escape=False):
-            output_configuration = self.run_command(host, "search-pattern" + f" -p {pattern} -t {timeout} -e {escape}", check=False)
+    def search_pattern(self, host, pattern, timeout, file='/var/ossec/logs/ossec.log', escape=False):
+            output_configuration = self.run_shell(host, "search-pattern" + f' -p "{pattern}" -t {timeout} -f {file}', check=False)
+            print(output_configuration)
             if output_configuration['rc'] != 0:
                 raise Exception("Error: Pattern not found")
 

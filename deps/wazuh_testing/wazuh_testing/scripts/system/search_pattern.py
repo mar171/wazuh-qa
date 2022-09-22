@@ -34,17 +34,13 @@ def main():
     arg_parser.add_argument('-f', '--file', metavar='file', type=str, required=True,
                             default=None, help='File to search the pattern', dest='file')
 
-
-    arg_parser.add_argument('-e', '--escape', metavar='escape', type=bool, required=False,
-                            default=False, help='Escape characters', dest='escape')
-
     arg_parser.add_argument('-t', '--timeout', metavar='timeout', type=int, required=True,
                             default=None, help='Timeout', dest='timeout')
 
     args = arg_parser.parse_args()
 
     wazuh_log_monitor = FileMonitor(args.file)
-    callback_search = make_callback(pattern=args.pattern,prefix=None, escape=args.escape)
+    callback_search = make_callback(pattern=args.pattern, prefix=None)
 
     match = wazuh_log_monitor.start(timeout=args.timeout, callback=callback_search, error_message="Regex not found").result()
 
