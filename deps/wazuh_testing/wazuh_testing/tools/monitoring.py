@@ -30,7 +30,8 @@ from struct import pack, unpack
 from lockfile import FileLock
 from wazuh_testing import logger
 from wazuh_testing.tools.file import truncate_file
-from wazuh_testing.tools.system import HostManager
+from wazuh_testing.tools.system.host_manager import HostManager
+from tempfile import gettempdir
 
 REMOTED_DETECTOR_PREFIX = r'.*wazuh-remoted.*'
 LOG_COLLECTOR_DETECTOR_PREFIX = r'.*wazuh-logcollector.*'
@@ -180,6 +181,36 @@ def make_callback(pattern, prefix="wazuh", escape=False):
 
     return lambda line: regex.match(line.decode() if isinstance(line, bytes) else line) is not None
 
+def make_callback_with_match(pattern, prefix="wazuh", escape=False):
+    """
+    Creates a callback function from a text pattern.
+
+    Args:
+        pattern (str): String to match on the log
+        prefix  (str): String prefix (modulesd, remoted, ...)
+        escape (bool): Flag to escape special characters in the pattern
+    Returns:
+        lambda function with the callback
+    """
+    if escape:
+        pattern = re.escape(pattern)
+    else:
+        pattern = r'\s+'.join(pattern.split())
+
+    full_pattern = pattern if prefix is None else fr'{prefix}{pattern}'
+    regex = re.compile(full_pattern)
+
+    def callback(line):
+        print(line)
+        #print(full_pattern)
+        match = regex.match(line.decode() if isinstance(line, bytes) else line)
+        #print(match)
+        if match:
+            print(f"Found {match.groups()}")
+            return ( [str(match.group(0))] + list(match.groups()) )
+        else:
+            match
+    return callback
 
 class FileMonitor:
     def __init__(self, file_path, time_step=0.5):
@@ -260,7 +291,7 @@ class SocketController:
             self.open()
 
     def open(self):
-        """Opens sokcet """
+        """Opens socket"""
         # Create socket object
         self.sock = socket.socket(family=self.family, type=self.protocol)
 
@@ -884,7 +915,7 @@ class HostMonitor:
     custom error message.
     """
 
-    def __init__(self, inventory_path, messages_path, tmp_path, time_step=0.5):
+    def __init__(self, inventory_path, messages_path=None, tmp_path=os.path.join(gettempdir(),'HostMonitor'), time_step=0.5, messages=None):
         """Create a new instance to monitor any given file in any specified host.
 
         Args:
@@ -904,8 +935,11 @@ class HostMonitor:
             os.mkdir(self._tmp_path)
         except OSError:
             pass
-        with open(messages_path, 'r') as f:
-            self.test_cases = yaml.safe_load(f)
+        if not messages_path:
+            self.test_cases = messages
+        else:
+            with open(messages_path, 'r') as f:
+                self.test_cases = yaml.safe_load(f)
 
     def run(self, update_position=False):
         """This method creates and destroy the needed processes for the messages founded in messages_path.
@@ -955,18 +989,20 @@ class HostMonitor:
         tmp_file = os.path.join(self._tmp_path, output_path)
         while True:
             with FileLock(tmp_file):
-                with open(tmp_file, "r+") as file:
+               with open(tmp_file, "r+") as file:
                     content = self.host_manager.get_file_content(host, path).split('\n')
+                    logger.debug(f'Content gathered')
                     file_content = file.read().split('\n')
                     for new_line in content:
                         if new_line == '':
                             continue
                         if new_line not in file_content:
                             file.write(f'{new_line}\n')
-                time.sleep(self._time_step)
+            time.sleep(self._time_step)
 
     @new_process
-    def _start(self, host, payload, path, encoding=None, error_messages_per_host=None, update_position=False):
+    def _start(self, host, payload, path, encoding=None, error_messages_per_host=None, update_position=False,
+               verbose=False):
         """Start the file monitoring until the QueueMonitor returns an string or TimeoutError.
 
         Args:
@@ -988,8 +1024,8 @@ class HostMonitor:
                 monitor = QueueMonitor(tailer.queue, time_step=self._time_step)
                 try:
                     self._queue.put({host: monitor.start(timeout=case['timeout'],
-                                                         callback=make_callback(pattern=case['regex'], prefix='.*'),
-                                                         update_position=False
+                                                         callback=make_callback_with_match(pattern=case['regex'], prefix='.*'),
+                                                         update_position=update_position
                                                          ).result()})
                 except TimeoutError:
                     try:

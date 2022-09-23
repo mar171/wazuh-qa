@@ -1,0 +1,11 @@
+'wazuh-agent1':
+  -
+    'regex': "Testing1405"
+    "path": "/var/ossec/logs/ossec.log"
+    "timeout": 50
+
+'wazuh-agent2':
+  -
+    'regex': "Testing1405"
+    "path": "/var/ossec/logs/ossec.log"
+    "timeout": 50

@@ -41,6 +41,7 @@ def get_token_login_api(protocol, host, port, user, password, login_endpoint, ti
     """Get API login token"""
 
     login_url = f"{get_base_url(protocol, host, port)}{login_endpoint}"
+    print(login_url)
 
     for _ in range(login_attempts):
         response = requests.post(login_url, headers=get_login_headers(user, password), verify=False, timeout=timeout)
@@ -181,7 +182,7 @@ def wait_until_api_ready(protocol=API_PROTOCOL, host=API_HOST, port=API_PORT, us
 
 
 def make_api_call(port=55000, method='GET', endpoint='/', headers=None, request_json=None, params=None, verify=False,
-                  token=None):
+                  token=None, host=API_HOST):
     """Make an API call
 
     Args:
@@ -206,16 +207,16 @@ def make_api_call(port=55000, method='GET', endpoint='/', headers=None, request_
 
     response = None
     if method == 'POST':
-        response = requests.post(f'https://localhost:{port}{endpoint}', headers=headers, json=request_json,
+        response = requests.post(f'https://{host}:{port}{endpoint}', headers=headers, json=request_json,
                                  params=params, verify=verify)
     elif method == 'DELETE':
-        response = requests.delete(f'https://localhost:{port}{endpoint}', headers=headers, json=request_json,
+        response = requests.delete(f'https://{host}:{port}{endpoint}', headers=headers, json=request_json,
                                    params=params, verify=verify)
     elif method == 'PUT':
-        response = requests.put(f'https://localhost:{port}{endpoint}', headers=headers, json=request_json,
+        response = requests.put(f'https://{host}:{port}{endpoint}', headers=headers, json=request_json,
                                 params=params, verify=verify)
     else:
-        response = requests.get(f'https://localhost:{port}{endpoint}', headers=headers, json=request_json,
+        response = requests.get(f'https://{host}:{port}{endpoint}', headers=headers, json=request_json,
                                 params=params, verify=verify)
     return response
 

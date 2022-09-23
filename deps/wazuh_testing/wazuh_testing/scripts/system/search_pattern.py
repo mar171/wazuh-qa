@@ -1,6 +1,8 @@
 import json
+import os
 import re
 import argparse
+
 from wazuh_testing.tools.monitoring import FileMonitor
 
 def make_callback(pattern, prefix="wazuh", escape=False):
@@ -37,13 +39,29 @@ def main():
     arg_parser.add_argument('-t', '--timeout', metavar='timeout', type=int, required=True, nargs="*",
                             default=None, help='Timeout', dest='timeout')
 
-    args = arg_parser.parse_args()
+    arg_parser.add_argument('-o', '--output', metavar='output', type=str, required=True,
+                            default=None, help='Output', dest='output')
 
-    for regex, file, timeout in zip(args.patterns, args.file, args.timeout):
-        wazuh_log_monitor = FileMonitor(file)
-        callback_search = make_callback(pattern=regex, prefix=None)
-        match = wazuh_log_monitor.start(timeout=timeout, callback=callback_search, error_message="Regex not found").result()
-        print(f"Regex {regex}: {[str(match.group(0))] + list(match.groups())}")
+    args = arg_parser.parse_args()
+    os.remove(args.output)
+
+    patterns_found = {}
+
+    try:
+        for regex, file, timeout in zip(args.patterns, args.file, args.timeout):
+            wazuh_log_monitor = FileMonitor(file)
+            callback_search = make_callback(pattern=regex, prefix=None)
+            match = wazuh_log_monitor.start(timeout=timeout, callback=callback_search, error_message="Regex not found").result()
+            patterns_found[regex] = {
+                'line': str(match.group(0)),
+                'pattern': str(match.groups())
+            }
+    except TimeoutError:
+        patterns_found = {}
+        pass
+
+    with open(args.output, 'w+') as output_file:
+        json.dump(patterns_found, output_file, ensure_ascii=False, indent=4)
 
 if __name__ == '__main__':
     main()

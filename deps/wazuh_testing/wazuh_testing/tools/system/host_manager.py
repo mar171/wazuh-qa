@@ -13,7 +13,6 @@ import testinfra
 import yaml
 
 from wazuh_testing.tools import WAZUH_CONF, WAZUH_API_CONF, API_LOG_FILE_PATH
-
 from wazuh_testing.tools.configuration import set_section_wazuh_conf
 
 
@@ -41,7 +40,8 @@ class HostManager:
         """
         return testinfra.get_host(f"ansible://{host}?ansible_inventory={self.inventory_path}")
 
-    def move_file(self, host: str, src_path: str, dest_path: str = '/var/ossec/etc/ossec.conf', check: bool = False):
+    def move_file(self, host: str, src_path: str, dest_path: str = '/var/ossec/etc/ossec.conf', check: bool = False,
+                  sudo: bool = False, remote_src: bool = False):
         """Move from src_path to the desired location dest_path for the specified host.
 
         Args:
@@ -50,8 +50,14 @@ class HostManager:
         dest_path (str): Destination path
         check (bool, optional): Ansible check mode("Dry Run"), by default it is enabled so no changes will be applied.
         """
-        self.get_host(host).ansible("copy", f"src={src_path} dest={dest_path} owner=wazuh group=wazuh mode=0775",
-                                    check=check, become=True)
+        command = ''
+        if remote_src :
+            command = f"src={src_path} dest={dest_path} owner=wazuh remote_src={remote_src} mode=preserve"
+        else:
+            command = f"src={src_path} dest={dest_path} owner=wazuh"
+
+        return self.get_host(host).ansible("copy", command,
+                                    check=check, become=bool)
 
     def add_block_to_file(self, host: str, path: str, replace: str, before: str, after, check: bool = False):
         """Add text block to desired file.
@@ -74,19 +80,20 @@ class HostManager:
         print(extra)
         self.get_host(host).ansible("ansible.builtin.replace", extra)
 
-    def change_agent_manager_address(self, host: str, address: str, check: bool = False):
-        configuration = [{'section': 'client', 'elements': [{'server': {'elements':
-                        [{'address': {'value': f"{address}"}}]}}]}]
 
-        change_configuration_python_command = f"""
-        python -c \"import wazuh_testing.tools.configuration as conf;configuration_ossec = conf.set_section_wazuh_conf({configuration});conf.write_wazuh_conf(configuration_ossec)\"
-        """
+    # def change_main_configuration(self, host: str, address: str, check: bool = False):
+    #     configuration = [{'section': 'client', 'elements': [{'server': {'elements':
+    #                     [{'address': {'value': f"{address}"}}]}}]}]
 
-        self.get_host(host).ansible("command", change_configuration_python_command, check=check, become=True)['stdout']
-        import pdb; pdb.set_trace()
+    #     change_configuration_python_command = f"""
+    #     python -c \"import wazuh_testing.tools.configuration as conf;configuration_ossec = conf.set_section_wazuh_conf({configuration});conf.write_wazuh_conf(configuration_ossec)\"
+    #     """
+
+    #     self.get_host(host).ansible("command", change_configuration_python_command, check=check, become=True)['stdout']
+    #     import pdb; pdb.set_trace()
 
 
-    def modify_file_content(self, host: str, path: str = None, content: Union[str, bytes] = ''):
+    def modify_file_content(self, host: str, path: str = None, content: Union[str, bytes] = '', sudo: bool = False):
         """Create a file with a specified content and copies it to a path.
 
         Args:
@@ -97,8 +104,9 @@ class HostManager:
         tmp_file = tempfile.NamedTemporaryFile()
         tmp_file.write(content if isinstance(content, bytes) else content.encode())
         tmp_file.seek(0)
-        self.move_file(host, src_path=tmp_file.name, dest_path=path)
+        moving_file_operation_result = self.move_file(host, src_path=tmp_file.name, dest_path=path, sudo=sudo)
         tmp_file.close()
+        return moving_file_operation_result
 
     def control_service(self, host: str, service: str = 'wazuh', state: str = "started", check: bool = False):
         """Control the specified service.
@@ -143,7 +151,8 @@ class HostManager:
             host (str): Hostname
             file_path (str) : Path of the file
         """
-        return self.get_host(host).file(file_path).content_string
+        with self.get_host(host).sudo():
+            return self.get_host(host).file(file_path).content_string
 
     def apply_config(self, config_yml_path: str, dest_path: str = WAZUH_CONF, clear_files: list = None,
                      restart_services: list = None):
@@ -301,6 +310,7 @@ class HostManager:
         """
         return self.get_host(host).interface(interface).addresses
 
+
     def find_file(self, host: str, path: str, pattern: str, recurse: bool = False, use_regex: bool = False):
         """Search and return information of a file inside a path.
         Args:
@@ -328,82 +338,11 @@ class HostManager:
         return self.get_host(host).ansible("stat", f"path={path}")
 
 
-def clean_environment(host_manager, target_files):
-    """Clears a series of files on target hosts managed by a host manager
-    Args:
-        host_manager (object): a host manager object with not None inventory_path
-        target_files (dict): a dictionary of tuples, each with the host and the path of the file to clear.
-    """
-    for target in target_files:
-        host_manager.clear_file(host=target[0], file_path=target[1])
-
-
-
-
-class WazuhEnvironment(HostManager):
-    def __init__(self, inventory_path):
-        super().__init__(inventory_path)
-
-    def change_component_configuration(self, configuration_host):
-        temporal_configuration_file = '/tmp/temporal_configuration.json'
-        for host, configuration in configuration_host.items():
-            # Write configuration in a temporal json file
-            configuration_text = json.dumps(configuration)
-            copy_config_output = self.get_host(host).ansible("copy", f"content='{configuration_text}' dest={temporal_configuration_file}", check=False)
-            if not 'changed' in copy_config_output:
-                raise Exception("Error: Temporal configuration file could not be created")
-
-            # Write configuration
-            output_configuration = self.run_command(host, "change-configuration" + f" -c {temporal_configuration_file}", check=False)
-            print(output_configuration)
-
-            if output_configuration['rc'] != 0:
-                raise Exception("Error: Configuration could not be updated")
-
-    def change_local_internal_option(self, local_internal_options):
-
-        for host, configuration in local_internal_options.items():
-            local_internal_options_file_content = ""
-            for option,value in configuration.items():
-                local_internal_options_file_content += f"{option}={value}"
-
-            print(host)
-            local_internal_option = ''
-            if(self.is_windows(host)):
-                WAZUH_PATH_WINDOWS = os.path.join("C:", "\\", "Program Files (x86)", "ossec-agent", "local_internal_options.conf")
-                local_internal_option = WAZUH_PATH_WINDOWS
-            else:
-                local_internal_option = '/var/ossec/etc/local_internal_options.conf'
-
-            print(local_internal_option)
-
-            self.modify_file_content(host, path=local_internal_option, content=local_internal_options_file_content)
-
-    def search_pattern(self, host, pattern, timeout, file=['/var/ossec/logs/ossec.log'], escape=False):
-        pattern_join = "\"" + '" "'.join(pattern) + "\""
-        timeout_join = ' '.join(timeout)
-        file_join = ' '.join(file)
-
-        output_configuration = self.run_shell(host, "search-pattern" + f' -p {pattern_join} -t {timeout_join} -f {file_join}', check=False)
-        print(output_configuration)
-        if output_configuration['rc'] != 0:
-            raise Exception("Error: Pattern not found")
-
-    def multipattern_search(self, multipattern_search, file='/var/ossec/logs/ossec.log', escape=False):
-        threads = []
-        for host, patterns in multipattern_search.items():
-            threat = threading.Thread(target=self.search_pattern, args=(host, [value['regex'] for value in patterns],
-                                [str(value['timeout']) for value in patterns],
-                                [value['file'] for value in patterns]))
-            threat.start()
-        for t in threads:
-            t.join()
-
-    def get_host_variables(self, host):
-        return self.get_host(host).ansible.get_variables()
-
-    def is_windows(self, host):
-        return self.get_host_variables(host)['os_name'] == 'windows'
-
-    def is_linux(self, host):
-        return self.get_host_variables(host)['os_name'] == 'linux'
+    def clean_environment(host_manager, target_files):
+        """Clears a series of files on target hosts managed by a host manager
+        Args:
+            host_manager (object): a host manager object with not None inventory_path
+            target_files (dict): a dictionary of tuples, each with the host and the path of the file to clear.
+        """
+        for target in target_files:
+            host_manager.clear_file(host=target[0], file_path=target[1])

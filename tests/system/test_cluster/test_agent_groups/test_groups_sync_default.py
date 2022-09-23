@@ -40,45 +40,45 @@ tags:
     - wazuh-db
 '''
 import os
-import time
 
 import pytest
-from wazuh_testing.tools import WAZUH_PATH
-from wazuh_testing.tools.system import HostManager
-from system import check_agent_groups
-from system.test_cluster.test_agent_groups.common import register_agent
+from wazuh_testing.tools.system.wazuh_environment import WazuhEnvironment
 
 
-# Hosts
-test_infra_managers = ["wazuh-master", "wazuh-worker1"]
-agents_in_cluster = 2
-test_infra_agents = []
-for x in range(agents_in_cluster):
-    test_infra_agents.append("wazuh-agent" + str(x+1))
-
-# inventory_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-#                               'provisioning', 'big_cluster_40_agents', 'inventory.yml')
+test_time = 20
+sync_delay = 40
 
 @pytest.fixture(scope='module')
-def get_host_manager(request):
+def get_environment_handler(request):
     inventory_path = request.config.getoption('--inventory-path')
 
     if not inventory_path:
         raise ValueError('Inventory not specified')
 
-    return HostManager(inventory_path)
+    return WazuhEnvironment(inventory_path)
 
 
-local_path = os.path.dirname(os.path.abspath(__file__))
-test_time = 20
-sync_delay = 40
+@pytest.fixture(scope='function')
+def delete_agent(request, get_environment_handler):
+    agent_list = get_environment_handler.get_agents()
+    # Stop all agents
+    get_environment_handler.stop_all_agents()
+    # Remove agents
 
+
+        # Remove agent in manager
+        # Remove data in agent, client.keys and id
+
+    pass
+
+
+@pytest.fixture(scope='function')
+def clean_environment(request, get_environment_handler):
+    # Truncatelog?
+    pass
 
 # Tests
-@pytest.mark.parametrize("test_infra_managers", [test_infra_managers])
-@pytest.mark.parametrize("test_infra_agents", [test_infra_agents])
-@pytest.mark.parametrize("agent_host", test_infra_managers[0:2])
-def test_agent_groups_sync_default(agent_host, test_infra_managers, test_infra_agents):
+def test_agent_groups_sync_default(get_environment_handler, clean_environment, delete_agents, restore_environment):
     '''
     description: Check that after a long time when the manager has been unable to synchronize de databases, because
     new agents are being continually added, database synchronization is forced and the expected information is in
@@ -108,6 +108,7 @@ def test_agent_groups_sync_default(agent_host, test_infra_managers, test_infra_a
     expected_output:
         - The 'Agent_name' with ID 'Agent_id' belongs to groups: 'group_name'.
     '''
+    agent_list = get_environment_handler.get_agents()
     # host_manager = get_host_manager
     # print("Init test properly")
 
