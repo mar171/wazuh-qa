@@ -182,7 +182,7 @@ def get_configuration(request):
     return request.param
 
 
-@pytest.mark.skip("This test needs refactor/fixes. Has flaky behaviour. Skipped by Issue #3218")
+# @pytest.mark.skip("This test needs refactor/fixes. Has flaky behaviour. Skipped by Issue #3218")
 @pytest.mark.filterwarnings('ignore::urllib3.exceptions.InsecureRequestWarning')
 def test_configuration_age(get_configuration, configure_environment):
     '''
@@ -240,11 +240,11 @@ def test_configuration_age(get_configuration, configure_environment):
             else:
                 expected_exception = sb.CalledProcessError
 
-            try:
-                control_service('start', daemon=LOGCOLLECTOR_DAEMON)
-            except expected_exception:
-                check_configuration_age_invalid(cfg)
-
-            # with pytest.raises(expected_exception):
+            # try:
             #     control_service('start', daemon=LOGCOLLECTOR_DAEMON)
+            # except expected_exception:
             #     check_configuration_age_invalid(cfg)
+
+            with pytest.raises(expected_exception):
+                control_service('start', daemon=LOGCOLLECTOR_DAEMON)
+                check_configuration_age_invalid(cfg)
