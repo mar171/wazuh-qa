@@ -240,6 +240,11 @@ def test_configuration_age(get_configuration, configure_environment):
             else:
                 expected_exception = sb.CalledProcessError
 
-            with pytest.raises(expected_exception):
+            try:
                 control_service('start', daemon=LOGCOLLECTOR_DAEMON)
+            except expected_exception:
                 check_configuration_age_invalid(cfg)
+
+            # with pytest.raises(expected_exception):
+            #     control_service('start', daemon=LOGCOLLECTOR_DAEMON)
+            #     check_configuration_age_invalid(cfg)
