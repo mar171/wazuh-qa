@@ -56,9 +56,9 @@ tags:
     - logcollector_configuration
 '''
 import os
-import pytest
 import sys
 import time
+import pytest
 
 from wazuh_testing.tools.configuration import load_configuration_template, get_test_cases_data
 from tempfile import gettempdir
@@ -96,6 +96,7 @@ if sys.platform == 'win32':
     prefix = WINDOWS_AGENT_PREFIX
     daemon = 'wazuh-agent.exe'
 
+
 def remove_item_from_list(item):
     """Remove item from configuration, metadata and case_ids list.
 
@@ -106,6 +107,7 @@ def remove_item_from_list(item):
     del t1_configuration_parameters[item]
     del t1_case_ids[item]
     return item - 1
+
 
 index = 0
 for _ in range(len(t1_configuration_metadata)):
@@ -213,6 +215,9 @@ def test_only_future_events(configuration, metadata, set_wazuh_configuration, ge
         - set_wazuh_configuration:
             type: fixture
             brief: Apply changes to the ossec.conf configuration.
+        - generate_macos_logs:
+            type: fixture
+            brief: Restart wazuh-logcollector and wait for log to be generated.
         - restart_wazuh_daemon_function:
             type: fixture
             brief: Restart the wazuh service.

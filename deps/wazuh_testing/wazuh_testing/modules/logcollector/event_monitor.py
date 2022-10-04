@@ -117,3 +117,10 @@ def check_invalid_value(option, value, prefix, severity='ERROR'):
     """
     callback_msg = fr".*{severity}: \(\d+\): Invalid value for element '{option}': {value}."
     check_logcollector_event(timeout=T_30, callback=callback_msg, prefix=prefix)
+
+
+def check_configuration_error():
+    """Check the configuration error event in ossec.log"""
+    check_logcollector_event(timeout=T_30, callback=r".* \(\d+\): Configuration error at.*",
+                             error_message="Could not find the event 'Configuration error at 'etc/ossec.conf' "
+                                           'in ossec.log', prefix='.*wazuh-logcollector.*')
