@@ -119,8 +119,6 @@ for _ in range(len(t1_configuration_metadata)):
         location = temp_file_path
 
     t1_configuration_metadata[index]['location'] = location
-    t1_configuration_metadata[index]['LOCATION'] = location
-    t1_configuration_parameters[index]['location'] = location
     t1_configuration_parameters[index]['LOCATION'] = location
 
     if sys.platform == 'win32':
