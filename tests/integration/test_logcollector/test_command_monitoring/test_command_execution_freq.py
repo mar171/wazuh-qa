@@ -56,60 +56,51 @@ tags:
     - logcollector_cmd_exec
 '''
 import os
+import sys
 import pytest
 from datetime import timedelta, datetime
+from time import sleep
 
 from wazuh_testing import global_parameters, logger
 from wazuh_testing.tools.time import TimeMachine
-import wazuh_testing.logcollector as logcollector
-from wazuh_testing.tools.configuration import load_wazuh_configurations
+from wazuh_testing.modules.logcollector import LOG_COLLECTOR_PREFIX, WINDOWS_AGENT_PREFIX, \
+                                               GENERIC_CALLBACK_ERROR_COMMAND_MONITORING
+from wazuh_testing.tools.configuration import load_configuration_template, get_test_cases_data
+from wazuh_testing.modules.logcollector import event_monitor as evm
+
 
 # Marks
 pytestmark = [pytest.mark.tier(level=0)]
 
-# Configuration
-test_data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
-configurations_path = os.path.join(test_data_path, 'wazuh_command_conf.yaml')
+prefix = LOG_COLLECTOR_PREFIX
+
+# Reference paths
+TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+CONFIGURATIONS_PATH = os.path.join(TEST_DATA_PATH, 'configuration_template')
+TEST_CASES_PATH = os.path.join(TEST_DATA_PATH, 'test_cases')
+
+# ------------------------------------------------ TEST_ACCEPTED_VALUES ------------------------------------------------
+# Configuration and cases data
+t1_configurations_path = os.path.join(CONFIGURATIONS_PATH, 'configuration_execution_freq.yaml')
+t1_cases_path = os.path.join(TEST_CASES_PATH, 'cases_execution_freq.yaml')
+
+# Accepted values test configurations (t1)
+t1_configuration_parameters, t1_configuration_metadata, t1_case_ids = get_test_cases_data(t1_cases_path)
+t1_configurations = load_configuration_template(t1_configurations_path, t1_configuration_parameters,
+                                                t1_configuration_metadata)
 
 local_internal_options = {'logcollector.remote_commands': '1', 'logcollector.debug': '2', 'monitord.rotate_log': '0',
                           'windows.debug': '2'}
 
-
-parameters = [
-    {'LOG_FORMAT': 'command', 'COMMAND': 'echo command_5m', 'FREQUENCY': 300},  # 5 minutes.
-    {'LOG_FORMAT': 'command', 'COMMAND': 'echo command_30m', 'FREQUENCY': 1800},  # 30 minutes.
-    {'LOG_FORMAT': 'command', 'COMMAND': 'echo command_1h', 'FREQUENCY': 3600},  # 1 hour.
-    {'LOG_FORMAT': 'command', 'COMMAND': 'echo command_24h', 'FREQUENCY': 86400},  # 24 hours.
-    {'LOG_FORMAT': 'full_command', 'COMMAND': 'echo full_command_5m', 'FREQUENCY': 300},
-    {'LOG_FORMAT': 'full_command', 'COMMAND': 'echo full_command_30m', 'FREQUENCY': 1800},
-    {'LOG_FORMAT': 'full_command', 'COMMAND': 'echo full_command_1h', 'FREQUENCY': 3600},
-    {'LOG_FORMAT': 'full_command', 'COMMAND': 'echo full_command_24h', 'FREQUENCY': 86400}
-]
-metadata = [
-    {'log_format': 'command', 'command': 'echo command_5m', 'frequency': 300, 'freq_str': '5_minutes'},
-    {'log_format': 'command', 'command': 'echo command_30m', 'frequency': 1800, 'freq_str': '30_minutes'},
-    {'log_format': 'command', 'command': 'echo command_1h', 'frequency': 3600, 'freq_str': '1_hour'},
-    {'log_format': 'command', 'command': 'echo command_24h', 'frequency': 86400, 'freq_str': '24_hours'},
-    {'log_format': 'full_command', 'command': 'echo full_command_5m', 'frequency': 300, 'freq_str': '5_minutes'},
-    {'log_format': 'full_command', 'command': 'echo full_command_30m', 'frequency': 1800, 'freq_str': '30_minutes'},
-    {'log_format': 'full_command', 'command': 'echo full_command_1h', 'frequency': 3600, 'freq_str': '1_hour'},
-    {'log_format': 'full_command', 'command': 'echo full_command_24h', 'frequency': 86400, 'freq_str': '24_hours'}
-]
-
-configurations = load_wazuh_configurations(configurations_path, __name__, params=parameters, metadata=metadata)
-configuration_ids = [f"{x['log_format']}_{x['freq_str']}" for x in metadata]
+if sys.platform == 'win32':
+    location = r'C:\testing\file.txt'
+    prefix = WINDOWS_AGENT_PREFIX
 
 
-# fixtures
-@pytest.fixture(scope="module", params=configurations, ids=configuration_ids)
-def get_configuration(request):
-    """Get configurations from the module."""
-    return request.param
-
-
-# @pytest.mark.skip("This test needs refactor/fixes. Has flaky behaviour. Skipped by Issue #3218")
-def test_command_execution_freq(configure_local_internal_options_module, get_configuration, file_monitoring,
-                                configure_environment, restart_monitord, restart_logcollector):
+@pytest.mark.parametrize('configuration, metadata', zip(t1_configurations, t1_configuration_metadata), ids=t1_case_ids)
+def test_command_execution_freq(configuration, metadata, set_wazuh_configuration,
+                                configure_local_internal_options_module, file_monitoring,
+                                restart_wazuh_daemon_function):
     '''
     description: Check if the 'wazuh-logcollector' daemon runs commands at the specified interval, set in
                  the 'frequency' tag. For this purpose, the test will configure the logcollector to run
@@ -123,24 +114,24 @@ def test_command_execution_freq(configure_local_internal_options_module, get_con
     tier: 0
 
     parameters:
+        - configuration:
+            type: dict
+            brief: Get configurations from the module.
+        - metadata:
+            type: dict
+            brief: Get metadata from the module.
+        - set_wazuh_configuration:
+            type: fixture
+            brief: Apply changes to the ossec.conf configuration.
         - configure_local_internal_options_module:
             type: fixture
             brief: Configure the Wazuh local internal options file.
-        - get_configuration:
-            type: fixture
-            brief: Get configurations from the module.
         - file_monitoring:
             type: fixture
             brief: Handle the monitoring of a specified file.
-        - configure_environment:
+        - restart_wazuh_daemon_function:
             type: fixture
-            brief: Configure a custom environment for testing.
-        - restart_monitord:
-            type: fixture
-            brief: Reset the log file and start a new monitor.
-        - restart_logcollector:
-            type: fixture
-            brief: Clear the 'ossec.log' file and start a new monitor.
+            brief: Restart the wazuh service.
 
     assertions:
         - Verify that the logcollector runs commands at the interval set in the 'frequency' tag.
@@ -159,13 +150,10 @@ def test_command_execution_freq(configure_local_internal_options_module, get_con
         - logs
         - time_travel
     '''
-    config = get_configuration['metadata']
-    log_callback = logcollector.callback_running_command(log_format=config['log_format'], command=config['command'])
+    seconds_to_travel = metadata['frequency'] / 2  # Middle of the command execution cycle.
 
-    seconds_to_travel = config['frequency'] / 2  # Middle of the command execution cycle.
-
-    log_monitor.start(timeout=20, callback=log_callback,
-                      error_message=logcollector.GENERIC_CALLBACK_ERROR_COMMAND_MONITORING)
+    evm.check_running_command(file_monitor=log_monitor, log_format=metadata['log_format'], command=metadata['command'],
+                              error_message=GENERIC_CALLBACK_ERROR_COMMAND_MONITORING, prefix=prefix)
 
     before = str(datetime.now())
     TimeMachine.travel_to_future(timedelta(seconds=seconds_to_travel))
@@ -173,15 +161,17 @@ def test_command_execution_freq(configure_local_internal_options_module, get_con
 
     # The command should not be executed in the middle of the command execution cycle.
     with pytest.raises(TimeoutError):
-        log_monitor.start(timeout=global_parameters.default_timeout, callback=log_callback,
-                          error_message=logcollector.GENERIC_CALLBACK_ERROR_COMMAND_MONITORING)
+        evm.check_running_command(file_monitor=log_monitor,  log_format=metadata['log_format'],
+                                  command=metadata['command'], error_message=GENERIC_CALLBACK_ERROR_COMMAND_MONITORING,
+                                  prefix=prefix, timeout=global_parameters.default_timeout)
 
     before = str(datetime.now())
     TimeMachine.travel_to_future(timedelta(seconds=seconds_to_travel))
     logger.debug(f"Changing the system clock from {before} to {datetime.now()}")
 
-    log_monitor.start(timeout=global_parameters.default_timeout, callback=log_callback,
-                      error_message=logcollector.GENERIC_CALLBACK_ERROR_COMMAND_MONITORING)
+    evm.check_running_command(file_monitor=log_monitor, log_format=metadata['log_format'], command=metadata['command'],
+                              error_message=GENERIC_CALLBACK_ERROR_COMMAND_MONITORING, prefix=prefix,
+                              timeout=global_parameters.default_timeout)
 
     # Restore the system clock.
     TimeMachine.time_rollback()
