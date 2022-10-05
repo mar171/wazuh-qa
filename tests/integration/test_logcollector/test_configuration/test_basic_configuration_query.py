@@ -60,8 +60,8 @@ TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data
 CONFIGURATIONS_PATH = os.path.join(TEST_DATA_PATH, 'configuration_template')
 TEST_CASES_PATH = os.path.join(TEST_DATA_PATH, 'test_cases')
 
-configurations_file = ''
-cases_file = ''
+configurations_file = 'configuration_query_windows.yaml'
+cases_file = 'cases_query_windows.yaml'
 
 if sys.platform != 'win32' and sys.platform != 'darwin':
     pytestmark = [pytest.mark.skip, pytest.mark.tier(level=0)]
