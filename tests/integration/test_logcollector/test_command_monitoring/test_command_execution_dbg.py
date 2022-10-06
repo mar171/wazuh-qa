@@ -69,6 +69,9 @@ from wazuh_testing.modules.logcollector import event_monitor as evm
 # Marks
 pytestmark = [pytest.mark.linux, pytest.mark.darwin, pytest.mark.sunos5, pytest.mark.tier(level=0)]
 
+if sys.platform == 'win32':
+    pytestmark = [pytest.mark.skip, pytest.mark.tier(level=0)]
+
 prefix = LOG_COLLECTOR_PREFIX
 
 # Reference paths
@@ -100,19 +103,18 @@ def remove_item_from_list(item):
     return item - 1
 
 
-if sys.platform != 'win32':
-    # Accepted values test configurations (t1)
-    t1_configuration_parameters, t1_configuration_metadata, t1_case_ids = get_test_cases_data(t1_cases_path)
+# Accepted values test configurations (t1)
+t1_configuration_parameters, t1_configuration_metadata, t1_case_ids = get_test_cases_data(t1_cases_path)
 
-    if sys.platform != 'linux':
-        index = 0
-        for _ in range(len(t1_configuration_metadata)):
-            if t1_configuration_metadata[index]['os'] == 'linux' and index > 0:
-                index = remove_item_from_list(index)
-            index += 1
+if sys.platform != 'linux':
+    index = 0
+    for _ in range(len(t1_configuration_metadata)):
+        if t1_configuration_metadata[index]['os'] == 'linux' and index > 0:
+            index = remove_item_from_list(index)
+        index += 1
 
-    t1_configurations = load_configuration_template(t1_configurations_path, t1_configuration_parameters,
-                                                    t1_configuration_metadata)
+t1_configurations = load_configuration_template(t1_configurations_path, t1_configuration_parameters,
+                                                t1_configuration_metadata)
 
 
 def dbg_reading_command(command, alias, log_format):
