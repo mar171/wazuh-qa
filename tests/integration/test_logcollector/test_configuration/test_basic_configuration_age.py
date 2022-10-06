@@ -198,5 +198,4 @@ def test_configuration_age(configuration, metadata, restart_wazuh_daemon_after_f
                     evm.check_configuration_error()
                     # Check that wazuh-logcollector is not running
                     assert not check_if_daemons_are_running(['wazuh-logcollector'])[0], 'wazuh-logcollector is ' \
-                                                                                         'running and was not ' \
-                                                                                         'expected to'
+                        'running and was not expected to'

@@ -9,7 +9,7 @@
     command: echo
     alias: ''
     info: empty_output
-    os: windows_macos
+    os: no_linux
 
 - name: command_check_output_and_alias
   description: command_check_output_and_alias
@@ -22,7 +22,7 @@
     command: echo hello world
     alias: goodbye
     info: check_output_and_alias
-    os: windows_macos
+    os: no_linux
 
 - name: command_not_found
   description: command_not_found
@@ -35,7 +35,7 @@
     command: not_found_command -o option -v
     alias: ''
     info: not_found
-    os: windows_macos
+    os: no_linux
 
 - name: command_does_not_end
   description: command_does_not_end
@@ -48,7 +48,7 @@
     command: for ((i=0;;i++)); do echo "Line ${i}"; done
     alias: ''
     info: does_not_end
-    os: windows_macos
+    os: no_linux
 
 - name: command_long_output
   description: command_long_output
@@ -61,7 +61,7 @@
     command: ls -R /tmp
     alias: ''
     info: long_output
-    os: windows_macos
+    os: no_linux
 
 - name: command_that_fails
   description: command_that_fails
@@ -74,7 +74,7 @@
     command: cat doesntexists.txt
     alias: ''
     info: that_fails
-    os: windows_macos
+    os: no_linux
 
 - name: command_special_chars_filename
   description: command_special_chars_filename
@@ -87,7 +87,7 @@
     command: cat "ñ", "テスト", "ИСПЫТАНИЕ", "测试", "اختبار".txt
     alias: ''
     info: special_chars_filename
-    os: windows_macos
+    os: no_linux
 
 - name: command_special_chars_command
   description: command_special_chars_command
@@ -100,7 +100,7 @@
     command: テ``ñスト, ИСПЫТА´НИЕ",'测`试", "اختبا
     alias: ''
     info: special_chars_command
-    os: windows_macos
+    os: no_linux
 
 - name: command_special_chars_echo
   description: command_special_chars_echo
@@ -113,7 +113,7 @@
     command: echo ***
     alias: ''
     info: special_chars_echo
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_empty_output
   description: full_command_empty_output
@@ -126,7 +126,7 @@
     command: echo
     alias: ''
     info: empty_output
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_check_output_and_alias
   description: full_command_check_output_and_alias
@@ -139,7 +139,7 @@
     command: echo hello world
     alias: goodbye
     info: check_output_and_alias
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_not_found
   description: full_command_not_found
@@ -152,7 +152,7 @@
     command: not_found_command -o option -v
     alias: ''
     info: not_found
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_does not end
   description: full_command_does not end
@@ -165,7 +165,7 @@
     command: for ((i=0;;i++)); do echo "Line ${i}"; done
     alias: ''
     info: does not end
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_long_output
   description: full_command_long_output
@@ -178,7 +178,7 @@
     command: ls -R /tmp
     alias: ''
     info: long_output
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_that_fails
   description: full_command_that_fails
@@ -191,7 +191,7 @@
     command: cat doesntexists.txt
     alias: ''
     info: that_fails
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_special_chars_filename
   description: full_command_special_chars_filename
@@ -204,7 +204,7 @@
     command: cat "ñ", "テスト", "ИСПЫТАНИЕ", "测试", "اختبار".txt
     alias: ''
     info: special_chars_filename
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_special_chars_command
   description: full_command_special_chars_command
@@ -217,7 +217,7 @@
     command: テ``ñスト, ИСПЫТА´НИЕ",'测`试", "اختبا
     alias: ''
     info: special_chars_command
-    os: windows_macos
+    os: no_linux
 
 - name: full_command_special_chars_echo
   description: full_command_special_chars_echo
@@ -230,7 +230,7 @@
     command: echo ***
     alias: ''
     info: special_chars_echo
-    os: windows_macos
+    os: no_linux
 
 - name: command_killed_by_test
   description: command_killed_by_test

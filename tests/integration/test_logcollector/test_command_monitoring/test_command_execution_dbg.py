@@ -62,13 +62,14 @@ import sys
 from subprocess import check_output
 
 from wazuh_testing import global_parameters
-from wazuh_testing.modules.logcollector import LOG_COLLECTOR_PREFIX, WINDOWS_AGENT_PREFIX, \
-                                               GENERIC_CALLBACK_ERROR_COMMAND_MONITORING
+from wazuh_testing.modules.logcollector import LOG_COLLECTOR_PREFIX, GENERIC_CALLBACK_ERROR_COMMAND_MONITORING
 from wazuh_testing.tools.configuration import load_configuration_template, get_test_cases_data
 from wazuh_testing.modules.logcollector import event_monitor as evm
 
 # Marks
 pytestmark = [pytest.mark.linux, pytest.mark.darwin, pytest.mark.sunos5, pytest.mark.tier(level=0)]
+
+prefix = LOG_COLLECTOR_PREFIX
 
 # Reference paths
 TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
@@ -80,15 +81,12 @@ TEST_CASES_PATH = os.path.join(TEST_DATA_PATH, 'test_cases')
 t1_configurations_path = os.path.join(CONFIGURATIONS_PATH, 'configuration_execution_dbg.yaml')
 t1_cases_path = os.path.join(TEST_CASES_PATH, 'cases_execution_dbg.yaml')
 
-# Accepted values test configurations (t1)
-t1_configuration_parameters, t1_configuration_metadata, t1_case_ids = get_test_cases_data(t1_cases_path)
-
-
 local_internal_options = {
     'logcollector.remote_commands': '1',
     'logcollector.max_lines': '100',
     'logcollector.debug': '2'
 }
+
 
 def remove_item_from_list(item):
     """Remove item from configuration, metadata and case_ids list.
@@ -101,20 +99,20 @@ def remove_item_from_list(item):
     del t1_case_ids[item]
     return item - 1
 
-if sys.platform == 'win32':
-    prefix = WINDOWS_AGENT_PREFIX
-else:
-    prefix = LOG_COLLECTOR_PREFIX
 
-if sys.platform != 'linux':
-    index = 0
-    for _ in range(len(t1_configuration_metadata)):
-        if t1_configuration_metadata[index]['os'] == 'linux' and index > 0:
-            index = remove_item_from_list(index)
-        index += 1
+if sys.platform != 'windows':
+    # Accepted values test configurations (t1)
+    t1_configuration_parameters, t1_configuration_metadata, t1_case_ids = get_test_cases_data(t1_cases_path)
 
-t1_configurations = load_configuration_template(t1_configurations_path, t1_configuration_parameters,
-                                                t1_configuration_metadata)
+    if sys.platform != 'linux':
+        index = 0
+        for _ in range(len(t1_configuration_metadata)):
+            if t1_configuration_metadata[index]['os'] == 'linux' and index > 0:
+                index = remove_item_from_list(index)
+            index += 1
+
+    t1_configurations = load_configuration_template(t1_configurations_path, t1_configuration_parameters,
+                                                    t1_configuration_metadata)
 
 
 def dbg_reading_command(command, alias, log_format):

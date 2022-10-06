@@ -131,10 +131,10 @@ for _ in range(len(t1_configuration_metadata)):
         if t1_configuration_metadata[index]['log_format'] == 'eventchannel':
             # remove windows cases
             index = remove_item_from_list(index)
-    elif (t1_configuration_metadata[index]['log_format'] == 'macos' or \
-         t1_configuration_metadata[index]['log_format'] == 'eventchannel')  and index > 0:
-            # remove windows and macos cases
-            index = remove_item_from_list(index)
+    elif t1_configuration_metadata[index]['log_format'] == 'macos' or \
+        t1_configuration_metadata[index]['log_format'] == 'eventchannel' and index > 0:
+        # remove windows and macos cases
+        index = remove_item_from_list(index)
     index += 1
 
 t1_configurations = load_configuration_template(t1_configurations_path, t1_configuration_parameters,
