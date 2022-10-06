@@ -132,7 +132,7 @@ for _ in range(len(t1_configuration_metadata)):
             # remove windows cases
             index = remove_item_from_list(index)
     elif t1_configuration_metadata[index]['log_format'] == 'macos' or \
-        t1_configuration_metadata[index]['log_format'] == 'eventchannel' and index > 0:
+            t1_configuration_metadata[index]['log_format'] == 'eventchannel' and index > 0:
         # remove windows and macos cases
         index = remove_item_from_list(index)
     index += 1

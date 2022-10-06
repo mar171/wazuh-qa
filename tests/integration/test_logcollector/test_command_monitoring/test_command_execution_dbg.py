@@ -100,7 +100,7 @@ def remove_item_from_list(item):
     return item - 1
 
 
-if sys.platform != 'windows':
+if sys.platform != 'win32':
     # Accepted values test configurations (t1)
     t1_configuration_parameters, t1_configuration_metadata, t1_case_ids = get_test_cases_data(t1_cases_path)
 
