@@ -66,11 +66,9 @@ from wazuh_testing.modules.logcollector import LOG_COLLECTOR_PREFIX, GENERIC_CAL
 from wazuh_testing.tools.configuration import load_configuration_template, get_test_cases_data
 from wazuh_testing.modules.logcollector import event_monitor as evm
 
+
 # Marks
 pytestmark = [pytest.mark.linux, pytest.mark.darwin, pytest.mark.sunos5, pytest.mark.tier(level=0)]
-
-if sys.platform == 'win32':
-    pytestmark = [pytest.mark.skip, pytest.mark.tier(level=0)]
 
 prefix = LOG_COLLECTOR_PREFIX
 
