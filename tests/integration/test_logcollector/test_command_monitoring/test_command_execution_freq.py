@@ -61,7 +61,7 @@ import pytest
 from datetime import timedelta, datetime
 from time import sleep
 
-from wazuh_testing import global_parameters, logger
+from wazuh_testing import global_parameters, logger, T_30
 from wazuh_testing.tools.time import TimeMachine
 from wazuh_testing.modules.logcollector import LOG_COLLECTOR_PREFIX, WINDOWS_AGENT_PREFIX, \
                                                GENERIC_CALLBACK_ERROR_COMMAND_MONITORING
@@ -178,11 +178,12 @@ def test_command_execution_freq(configuration, metadata, set_wazuh_configuration
         - time_travel
     '''
     log_monitor = setup_log_monitor
-    
+
     seconds_to_travel = metadata['frequency'] / 2  # Middle of the command execution cycle.
 
     evm.check_running_command(file_monitor=log_monitor, log_format=metadata['log_format'], command=metadata['command'],
-                              error_message=GENERIC_CALLBACK_ERROR_COMMAND_MONITORING, prefix=prefix)
+                              error_message=GENERIC_CALLBACK_ERROR_COMMAND_MONITORING, prefix=prefix,
+                              timeout=T_30)
 
     before = str(datetime.now())
     travel_to_future(timedelta(seconds=seconds_to_travel))
@@ -200,7 +201,7 @@ def test_command_execution_freq(configuration, metadata, set_wazuh_configuration
 
     evm.check_running_command(file_monitor=log_monitor, log_format=metadata['log_format'], command=metadata['command'],
                               error_message=GENERIC_CALLBACK_ERROR_COMMAND_MONITORING, prefix=prefix,
-                              timeout=global_parameters.default_timeout)
+                              timeout=T_30)
 
     # Restore the system clock.
     TimeMachine.time_rollback()
