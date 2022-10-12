@@ -97,33 +97,6 @@ if sys.platform == 'win32':
     prefix = WINDOWS_AGENT_PREFIX
 
 
-import subprocess
-def _win_set_time(datetime_):
-        """
-        Change date and time in a Windows system.
-
-        Args:
-            datetime_ : New date and time to set.
-        """
-        subprocess.call(["powershell.exe", "Set-Date", "-Date", f'"{datetime_.strftime("%m/%d/%Y %H:%M:%S")}"'])
-
-
-def travel_to_future(time_delta, back_in_time=False):
-    """
-    Check which system are we running this code in and calls its proper function.
-
-    Args:
-        time_delta : Time frame we want to skip. It can have a negative value.
-        back_in_time (bool, optional): Go back in time the same time_delta interval. Default value is False.
-    """
-    # Save timedelta to be able to  travel back in time after the tests
-    TimeMachine.total_time_spent += time_delta.total_seconds()
-    now = datetime.utcnow() if sys.platform == 'darwin' else datetime.now()
-    future = now + time_delta if not back_in_time else now - time_delta
-
-    _win_set_time(future)
-
-
 @pytest.mark.parametrize('configuration, metadata', zip(t1_configurations, t1_configuration_metadata), ids=t1_case_ids)
 def test_command_execution_freq(configuration, metadata, set_wazuh_configuration,
                                 configure_local_internal_options_module, setup_log_monitor,
@@ -186,7 +159,7 @@ def test_command_execution_freq(configuration, metadata, set_wazuh_configuration
                               timeout=T_60)
 
     before = str(datetime.now())
-    travel_to_future(timedelta(seconds=seconds_to_travel))
+    TimeMachine.travel_to_future(timedelta(seconds=seconds_to_travel))
     logger.debug(f"Changing the system clock from {before} to {datetime.now()}")
 
     # The command should not be executed in the middle of the command execution cycle.
@@ -196,7 +169,7 @@ def test_command_execution_freq(configuration, metadata, set_wazuh_configuration
                                   prefix=prefix, timeout=global_parameters.default_timeout)
 
     before = str(datetime.now())
-    travel_to_future(timedelta(seconds=seconds_to_travel))
+    TimeMachine.travel_to_future(timedelta(seconds=seconds_to_travel))
     logger.debug(f"Changing the system clock from {before} to {datetime.now()}")
 
     evm.check_running_command(file_monitor=log_monitor, log_format=metadata['log_format'], command=metadata['command'],

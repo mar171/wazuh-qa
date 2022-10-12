@@ -52,7 +52,7 @@ class TimeMachine:
         Args:
             datetime_ : New date and time to set.
         """
-        subprocess.call(["powershell.exe", "Set-Date", "-Date", f'"{datetime_.strftime("%d/%m/%Y %H:%M:%S")}"'])
+        subprocess.call(["powershell.exe", "Set-Date", "-Date", f'"{datetime_.strftime("%m/%d/%Y %H:%M:%S")}"'])
 
     @staticmethod
     def _solaris_set_time(datetime_):
