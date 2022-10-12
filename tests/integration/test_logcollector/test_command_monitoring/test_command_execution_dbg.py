@@ -143,7 +143,7 @@ def dbg_reading_command(command, alias, log_format):
 
 @pytest.mark.parametrize('configuration, metadata', zip(t1_configurations, t1_configuration_metadata), ids=t1_case_ids)
 def test_command_execution_dbg(configuration, metadata, set_wazuh_configuration,
-                               configure_local_internal_options_module, file_monitoring,
+                               configure_local_internal_options_module, setup_log_monitor,
                                restart_wazuh_daemon_function):
     '''
     description: Check if the 'wazuh-logcollector' daemon generates debug logs when running commands with
@@ -174,9 +174,9 @@ def test_command_execution_dbg(configuration, metadata, set_wazuh_configuration,
         - configure_local_internal_options_module:
             type: fixture
             brief: Configure the Wazuh local internal options file.
-        - file_monitoring:
+        - setup_log_monitor:
             type: fixture
-            brief: Handle the monitoring of a specified file.
+            brief: Create the log monitor.
         - restart_wazuh_daemon_function:
             type: fixture
             brief: Restart the wazuh service.
@@ -199,6 +199,8 @@ def test_command_execution_dbg(configuration, metadata, set_wazuh_configuration,
     tags:
         - logs
     '''
+    log_monitor = setup_log_monitor
+
     # Check log line "DEBUG: Running command '<command>'"
     evm.check_running_command(file_monitor=log_monitor, log_format=metadata['log_format'], command=metadata['command'],
                               error_message=GENERIC_CALLBACK_ERROR_COMMAND_MONITORING, prefix=prefix,
