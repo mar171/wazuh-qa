@@ -85,7 +85,8 @@ t1_cases_path = os.path.join(TEST_CASES_PATH, 'cases_execution_dbg.yaml')
 local_internal_options = {
     'logcollector.remote_commands': '1',
     'logcollector.max_lines': '100',
-    'logcollector.debug': '2'
+    'logcollector.debug': '2',
+    'monitord.rotate_log': '0'
 }
 
 
