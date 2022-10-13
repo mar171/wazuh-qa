@@ -113,7 +113,7 @@ def change_date_format():
         subprocess.call(['powershell.exe', 'Set-ItemProperty -Path \"HKCU:\\Control Panel\\International\" ' \
                          f"-Name sShortDate -Value {date_format}"])
     else:
-        pass
+        yield
 
 
 @pytest.mark.parametrize('configuration, metadata', zip(t1_configurations, t1_configuration_metadata), ids=t1_case_ids)
@@ -158,9 +158,9 @@ def test_command_execution_freq(configuration, metadata, set_wazuh_configuration
           set in the 'frequency' tag expires.
 
     input_description: A configuration template (test_command_execution_freq) is contained in an external
-                       YAML file (wazuh_command_conf.yaml), which includes configuration settings for
+                       YAML file (configuration_execution_freq.yaml), which includes configuration settings for
                        the 'wazuh-logcollector' daemon and, it is combined with the test cases
-                       (log formats, frequencies, and commands to run) defined in the module.
+                       (log formats, frequencies, and commands to run) defined in cases_execution_freq.yaml file.
 
     expected_output:
         - r'DEBUG: Running .*'
