@@ -112,7 +112,8 @@ def change_date_format():
         date_format = str(command.stdout).split('\'')[1].split('\\')[0]
         subprocess.call(['powershell.exe', 'Set-ItemProperty -Path \"HKCU:\\Control Panel\\International\" ' \
                          f"-Name sShortDate -Value {date_format}"])
-
+    else:
+        pass
 
 
 @pytest.mark.parametrize('configuration, metadata', zip(t1_configurations, t1_configuration_metadata), ids=t1_case_ids)
