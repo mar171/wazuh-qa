@@ -274,17 +274,12 @@ def test_agentd_multi_server(configuration, metadata, set_wazuh_configuration, c
             # Restart at beginning of test
             restart_agentd()
 
-
         for index, log_str in enumerate(metadata['log_monitor_str'][stage]):
             error_message = f"Expected message '{log_str}' never arrived! Stage: {stage+1}, message number: {index+1}"
-            print(("@")*100)
             log_str = log_str.replace('\"', '\'')
-            callback = fr".*{log_str}.*"
-            print(callback)
-            evm.check_agentd_event(file_monitor=log_monitor, callback=callback, error_message=error_message,
+            callback_message = fr".*{log_str}.*"
+            evm.check_agentd_event(file_monitor=log_monitor, callback=callback_message, error_message=error_message,
                                    timeout=tcase_timeout)
-            # log_monitor.start(timeout=tcase_timeout, callback=lambda x: wait_until(x, log_str))
-            # assert False,
 
         for i in range(0, metadata['simulator_number']):
             # Clean after every stage
