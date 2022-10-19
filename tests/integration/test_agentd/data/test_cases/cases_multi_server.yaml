@@ -1,0 +1,165 @@
+- name: refuse_remoted_accept_enrollment
+  description: refuse_remoted_accept_enrollment
+  configuration_parameters:
+    SERVER_ADDRESS_1: testServer1
+    SERVER_ADDRESS_2: testServer2
+    SERVER_ADDRESS_3: testServer3
+    REMOTED_PORT_1: 1514
+    REMOTED_PORT_2: 1516
+    REMOTED_PORT_3: 1517
+    PROTOCOL: tcp
+  metadata:
+    protocol: tcp
+    clean_keys: True
+    simulator_number: 3
+    simulator_modes: {0: ['REJECT'],
+                      1: ['REJECT'],
+                      2: ['REJECT'],
+                      'AUTHD': ['ACCEPT']}
+    log_monitor_str: [['Trying to connect to server \(\[testServer1\]\:1514',
+                       'Requesting a key from server: testServer1',
+                       'Trying to connect to server \(\[testServer2\]\:1516',
+                       'Requesting a key from server: testServer2',
+                       'Trying to connect to server \(\[testServer3\]\:1517',
+                       'Requesting a key from server: testServer3']]
+
+- name: only_enrollment_and_only_remoted
+  description: only_enrollment_and_only_remoted
+  configuration_parameters:
+    SERVER_ADDRESS_1: testServer1
+    SERVER_ADDRESS_2: testServer2
+    SERVER_ADDRESS_3: testServer3
+    REMOTED_PORT_1: 1514
+    REMOTED_PORT_2: 1516
+    REMOTED_PORT_3: 1517
+    PROTOCOL: tcp
+  metadata:
+    protocol: tcp
+    clean_keys: True
+    simulator_number: 3
+    simulator_modes: {0: ['REJECT', 'REJECT'],
+                      1: ['REJECT', 'REJECT'],
+                      2: ['CONTROLLED_ACK', 'CONTROLLED_ACK'],
+                      'AUTHD': ['ACCEPT', 'REJECT']}
+    log_monitor_str: [['Requesting a key from server: testServer1',
+                       'Valid key received',
+                       'Trying to connect to server \(\[testServer1\]\:1514',
+                       'Connected to enrollment service at "\[127.0.0.1\]\:1515"'],
+                      ['Trying to connect to server \(\[testServer2\]\:1516',
+                       'Requesting a key from server: testServer2',
+                       'Trying to connect to server \(\[testServer3\]\:1517',
+                       'Connected to the server \(\[testServer3\]\:1517',
+                       'Received message: "\#\!\-agent ack "']]
+
+- name: server_down_fallback_tcp
+  description: server_down_fallback_tcp
+  configuration_parameters:
+    SERVER_ADDRESS_1: testServer1
+    SERVER_ADDRESS_2: testServer2
+    SERVER_ADDRESS_3: testServer3
+    REMOTED_PORT_1: 1514
+    REMOTED_PORT_2: 1516
+    REMOTED_PORT_3: 1517
+    PROTOCOL: tcp
+  metadata:
+    protocol: tcp
+    clean_keys: True
+    simulator_number: 3
+    simulator_modes: {0: ['CONTROLLED_ACK', 'CLOSE'],
+                      1: ['CONTROLLED_ACK', 'CONTROLLED_ACK'],
+                      2: ['CONTROLLED_ACK', 'CONTROLLED_ACK'],
+                      'AUTHD': ['ACCEPT', 'REJECT']}
+    log_monitor_str: [['Requesting a key from server: testServer1',
+                       'Connected to enrollment service at "\[127.0.0.1\]\:1515"',
+                       'Valid key received',
+                       'Trying to connect to server \(\[testServer1\]\:1514',
+                       'Connected to the server \(\[testServer1\]\:1514',
+                       'Received message: "\#\!\-agent ack "'],
+                      ['Trying to connect to server \(\[testServer1\]\:1514',
+                       'Trying to connect to server \(\[testServer2\]\:1516',
+                       'Connected to the server \(\[testServer2\]\:1516',
+                       'Received message: "\#\!\-agent ack "']]
+
+- name: server_down_fallback_udp
+  description: server_down_fallback_udp
+  configuration_parameters:
+    SERVER_ADDRESS_1: testServer1
+    SERVER_ADDRESS_2: testServer2
+    SERVER_ADDRESS_3: testServer3
+    REMOTED_PORT_1: 1514
+    REMOTED_PORT_2: 1516
+    REMOTED_PORT_3: 1517
+    PROTOCOL: udp
+  metadata:
+    protocol: udp
+    clean_keys: True
+    simulator_number: 3
+    simulator_modes: {0: ['CONTROLLED_ACK', 'REJECT'],
+                      1: ['CONTROLLED_ACK', 'CONTROLLED_ACK'],
+                      2: ['CONTROLLED_ACK', 'CONTROLLED_ACK'],
+                      'AUTHD': ['ACCEPT', 'REJECT']}
+    log_monitor_str: [['Requesting a key from server: testServer1',
+                       'Connected to enrollment service at "\[127.0.0.1\]\:1515"',
+                       'Valid key received',
+                       'Trying to connect to server \(\[testServer1\]\:1514',
+                       'Connected to the server \(\[testServer1\]\:1514',
+                       'Received message: "\#\!\-agent ack "'],
+                      ['Server unavailable. Setting lock.',
+                       'Requesting a key from server: testServer1',
+                       'Trying to connect to server \(\[testServer2\]\:1516',
+                       'Connected to the server \(\[testServer2\]\:1516',
+                       'Received message: "\#\!\-agent ack "']]
+
+- name: only_one_server_available
+  description: only_one_server_available
+  configuration_parameters:
+    SERVER_ADDRESS_1: testServer1
+    SERVER_ADDRESS_2: testServer2
+    SERVER_ADDRESS_3: testServer3
+    REMOTED_PORT_1: 1514
+    REMOTED_PORT_2: 1516
+    REMOTED_PORT_3: 1517
+    PROTOCOL: tcp
+  metadata:
+    protocol: tcp
+    clean_keys: False
+    simulator_number: 3
+    simulator_modes: {0: ['CLOSE', 'CLOSE', 'CLOSE'],
+                      1: ['CLOSE', 'CLOSE', 'CLOSE'],
+                      2: ['CONTROLLED_ACK', 'CONTROLLED_ACK', 'CONTROLLED_ACK'],
+                      'AUTHD': ['REJECT', 'REJECT', 'ACCEPT']}
+    log_monitor_str: [['Trying to connect to server \(\[testServer1\]\:1514',
+                       'Unable to connect to "\[127.0.0.1\]\:1514'],
+                      ['Trying to connect to server \(\[testServer2\]\:1516',
+                       'Unable to connect to "\[127.0.0.1\]\:1516'],
+                      ['Connected to enrollment service at "\[127.0.0.1\]\:1515"',
+                       'Received message: "\#\!\-agent ack "']]
+
+- name: unique_available_server_disconnects
+  description: unique_available_server_disconnects
+  configuration_parameters:
+    SERVER_ADDRESS_1: testServer1
+    SERVER_ADDRESS_2: testServer2
+    SERVER_ADDRESS_3: testServer3
+    REMOTED_PORT_1: 1514
+    REMOTED_PORT_2: 1516
+    REMOTED_PORT_3: 1517
+    PROTOCOL: tcp
+  metadata:
+    protocol: tcp
+    clean_keys: False
+    simulator_number: 3
+    simulator_modes: {0: ['CONTROLLED_ACK', 'CLOSE', 'CONTROLLED_ACK'],
+                      1: ['CLOSE', 'CLOSE', 'CLOSE'],
+                      2: ['CLOSE', 'CLOSE', 'CLOSE'],
+                      'AUTHD': ['ACCEPT', 'ACCEPT', 'ACCEPT']}
+    log_monitor_str: [['Trying to connect to server \(\[testServer1\]\:1514',
+                       'Connected to the server \(\[testServer1\]\:1514',
+                       'Received message: "\#\!\-agent ack "'],
+                      ['Trying to connect to server \(\[testServer2\]\:1516',
+                       'Unable to connect to "\[127.0.0.1\]\:1516'],
+                      ['Trying to connect to server \(\[testServer3\]\:1517',
+                       'Unable to connect to "\[127.0.0.1\]\:1517',
+                       'Connected to the server \(\[testServer1\]\:1514',
+                       'Server responded. Releasing lock.',
+                       'Received message: "\#\!\-agent ack "']]
