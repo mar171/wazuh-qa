@@ -19,18 +19,21 @@ class Request(object):
         method (str): Request type.
         payload (dict): Request parameters.
         headers (dict): Request headers.
+        verify (boolean): Ignore verifying the SSL certificate.
 
     Attributes:
         url (str): Url to send the request.
         method (str): Request type.
         payload (dict): Request parameters.
         headers (dict): Request headers.
+        verify (boolean): Ignore verifying the SSL certificate.
     """
-    def __init__(self, url, method, payload=None, headers=None):
+    def __init__(self, url, method, payload=None, headers=None, verify=False):
         self.url = url
         self.method = method.upper()
         self.payload = payload
         self.headers = headers
+        self.verify = verify
 
     def send(self):
         """Send the request.
@@ -41,7 +44,8 @@ class Request(object):
         args = {
             'method': self.method,
             'url': self.url,
-            'headers': self.headers
+            'headers': self.headers,
+            'verify': self.verify
         }
 
         if self.payload is not None:
@@ -57,9 +61,10 @@ class GetRequest(Request):
         url (str): Url to send the request.
         payload (dict): Request parameters.
         headers (dict): Request headers.
+        verify (boolean): Ignore verifying the SSL certificate.
     """
-    def __init__(self, url, payload=None, headers=None):
-        super().__init__(url=url, method='GET', payload=payload, headers=headers)
+    def __init__(self, url, payload=None, headers=None, verify=False):
+        super().__init__(url=url, method='GET', payload=payload, headers=headers, verify=verify)
 
 
 class PostRequest(Request):
@@ -69,9 +74,10 @@ class PostRequest(Request):
         url (str): Url to send the request.
         payload (dict): Request parameters.
         headers (dict): Request headers.
+        verify (boolean): Ignore verifying the SSL certificate.
     """
-    def __init__(self, url, payload=None, headers=None):
-        super().__init__(url=url, method='POST', payload=payload, headers=headers)
+    def __init__(self, url, payload=None, headers=None, verify=False):
+        super().__init__(url=url, method='POST', payload=payload, headers=headers, verify=verify)
 
 
 class PutRequest(Request):
@@ -81,9 +87,10 @@ class PutRequest(Request):
         url (str): Url to send the request.
         payload (dict): Request parameters.
         headers (dict): Request headers.
+        verify (boolean): Ignore verifying the SSL certificate.
     """
-    def __init__(self, url, payload=None, headers=None):
-        super().__init__(url=url, method='PUT', payload=payload, headers=headers)
+    def __init__(self, url, payload=None, headers=None, verify=False):
+        super().__init__(url=url, method='PUT', payload=payload, headers=headers, verify=verify)
 
 
 class DeleteRequest(Request):
@@ -93,6 +100,7 @@ class DeleteRequest(Request):
         url (str): Url to send the request.
         payload (dict): Request parameters.
         headers (dict): Request headers.
+        verify (boolean): Ignore verifying the SSL certificate.
     """
-    def __init__(self, url, payload=None, headers=None):
-        super().__init__(url=url, method='DELETE', payload=payload, headers=headers)
+    def __init__(self, url, payload=None, headers=None, verify=False):
+        super().__init__(url=url, method='DELETE', payload=payload, headers=headers, verify=verify)
