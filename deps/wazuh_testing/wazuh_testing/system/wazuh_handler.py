@@ -6,6 +6,7 @@ import os
 import re
 import yaml
 
+from wazuh_testing.tools.configuration import load_wazuh_configurations
 from wazuh_testing.system.host_manager import HostManager
 from wazuh_testing.tools.configuration import set_section_wazuh_conf, create_local_internal_options
 from multiprocessing import Pool
@@ -143,7 +144,7 @@ def get_wazuh_file_path(custom_installation_path=None, os_host='linux', file_nam
     }
     for files in wazuh_directory_files.values():
         if file_name in files['files']:
-            return files['path_calculation'](file_name)
+            return files['path_calculator'](file_name)
 
 
 class WazuhEnvironmentHandler(HostManager):
@@ -377,32 +378,33 @@ class WazuhEnvironmentHandler(HostManager):
             host (str): Hostname
             configuration_host (Map): Map with new hosts configuration
         """
+        operations = ['content', 'xml_configuration', 'yaml_configuration']
         operations_results = {host: {}}
         for configuration_file, configuration_values in configuration_host.items():
-            # Get the configuration file path according to host OS
+            if all(operation not in operations for operation in configuration_values.keys()):
+                raise Exception(f"Invalid operation for {configuration_file} configuration file. Please select one \
+                                  of the following: {operations}")
+
             group = configuration_values.get('group', 'default')
+            # Get the configuration file path according to host OS
             host_configuration_file_path = self.get_file_path(host, configuration_file, group)
 
-            if file in ['ossec.conf', 'agent.conf']:
-                # Get current configuration
-                current_configuration = self.get_file_content(host, host_configuration_file_path)
-                # print(f"Current configuration: {current_configuration}")
-                # Using current configuration as a template, set configuration
-                new_configuration = ''.join(set_section_wazuh_conf(configuration_values, current_configuration))
-                print(new_configuration)
-            if file == 'local_internal_options.conf' or file == 'local_internal_options':
-                # Create local_internal_options file using specified map configuration
-                new_configuration = create_local_internal_options(configuration_values)
-            elif file == 'api.yaml':
-                new_configuration = yaml.dump(configuration_values)
+            if 'xml_configuration' in configuration_values.keys():
+                configuration = configuration_values['xml_configuration']
+                current_configuration = self.get_file_content(host, host_configuration_file_path, become=True)
+                new_configuration = ''.join(set_section_wazuh_conf(configuration, current_configuration))
+            elif 'yaml_configuration' in configuration_values.keys():
+                configuration = configuration_values['yaml_configuration']
+                new_configuration = yaml.dump(configuration)
             else:
                 # Otherwise, configuration will be considered as raw text
-                new_configuration = str(configuration_values)
+                new_configuration = configuration_values['content']
 
             operations_results[host][configuration_file] = self.modify_file_content(host, host_configuration_file_path,
                                                                                     new_configuration,
                                                                                     not self.is_windows(host),
                                                                                     self.is_windows(host))
+
         for file, operation_result in operations_results[host].items():
             if 'msg' in operation_result:
                 raise ValueError(f"Error during file operations in {host} for file {file}: {operation_result}")
@@ -474,12 +476,13 @@ class WazuhEnvironmentHandler(HostManager):
         Returns:
             dict: Host backup filepaths
         """
-        backup_paths = {}
+        backup_paths = {host: {}}
         for file in configuration_list:
             temporal_folder = DEFAULT_TEMPORAL_DIRECTORY[self.get_ansible_host_os(host)]
             new_filename = os.path.join(temporal_folder, file + '.backup',)
             backup_paths[host][file] = new_filename
-            self.copy_file(host, self.get_file_path(host, file), new_filename, remote_src=True)
+            self.copy_file(host, self.get_file_path(host, file), new_filename, remote_src=True,
+                           become=not self.is_windows(host))
 
         return backup_paths
 
@@ -498,7 +501,10 @@ class WazuhEnvironmentHandler(HostManager):
         else:
             host_configuration_map = [(host, backup_files) for host, backup_files in configuration_list.items()]
             pool = Pool()
-            backup_paths = pool.starmap(self.backup_host_configuration, host_configuration_map)
+            a = [('centos-manager', ['ossec.conf', 'local_internal_options.conf'])]
+            print("TESTING")
+            print(host_configuration_map)
+            backup_paths = pool.starmap(self.backup_host_configuration, a)
 
         return backup_paths
 
@@ -508,9 +514,9 @@ class WazuhEnvironmentHandler(HostManager):
         Args:
             backup_configuration (dict): Backup configuration filepaths
         """
-        for file, backup in backup_configuration.items():
-            self.move_file(host=host, dest_path=self.get_host_configuration_file_path(host, file),
-                           src_path=backup, remote_src=True, sudo=True)
+        for file, backup in backup_configuration[host].items():
+            self.copy_file(host=host, dest_path=self.get_file_path(host, file),
+                           src_path=backup, remote_src=True, become=not self.is_windows(host))
 
     def restore_environment_backup_configuration(self, backup_configuration, parallel=True):
         """Restore environment backup configuration
