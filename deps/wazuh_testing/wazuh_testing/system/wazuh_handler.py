@@ -4,13 +4,21 @@
 
 import os
 import re
+import yaml
 
 from wazuh_testing.system.host_manager import HostManager
+from wazuh_testing.tools.configuration import set_section_wazuh_conf, create_local_internal_options
+from multiprocessing import Pool
 
 DEFAULT_INSTALL_PATH = {
     'linux': '/var/ossec',
     'windows': 'C:\\Program Files\\ossec-agent',
     'darwin': '/Library/Ossec'
+}
+
+DEFAULT_TEMPORAL_DIRECTORY = {
+    'linux': '/tmp',
+    'windows': 'C:\\Users\\qa\\AppData\Local\Temp'
 }
 
 
@@ -142,7 +150,7 @@ class WazuhEnvironmentHandler(HostManager):
     def __init__(self, inventory_path):
         super().__init__(inventory_path)
 
-    def get_file_fullpath(self, host, filename, group=None):
+    def get_file_path(self, host, filename, group=None):
         """Get the path of common configuration and log file in the specified host.
         Args:
             host (str): Hostname
@@ -369,7 +377,37 @@ class WazuhEnvironmentHandler(HostManager):
             host (str): Hostname
             configuration_host (Map): Map with new hosts configuration
         """
-        pass
+        operations_results = {host: {}}
+        for configuration_file, configuration_values in configuration_host.items():
+            # Get the configuration file path according to host OS
+            group = configuration_values.get('group', 'default')
+            host_configuration_file_path = self.get_file_path(host, configuration_file, group)
+
+            if file in ['ossec.conf', 'agent.conf']:
+                # Get current configuration
+                current_configuration = self.get_file_content(host, host_configuration_file_path)
+                # print(f"Current configuration: {current_configuration}")
+                # Using current configuration as a template, set configuration
+                new_configuration = ''.join(set_section_wazuh_conf(configuration_values, current_configuration))
+                print(new_configuration)
+            if file == 'local_internal_options.conf' or file == 'local_internal_options':
+                # Create local_internal_options file using specified map configuration
+                new_configuration = create_local_internal_options(configuration_values)
+            elif file == 'api.yaml':
+                new_configuration = yaml.dump(configuration_values)
+            else:
+                # Otherwise, configuration will be considered as raw text
+                new_configuration = str(configuration_values)
+
+            operations_results[host][configuration_file] = self.modify_file_content(host, host_configuration_file_path,
+                                                                                    new_configuration,
+                                                                                    not self.is_windows(host),
+                                                                                    self.is_windows(host))
+        for file, operation_result in operations_results[host].items():
+            if 'msg' in operation_result:
+                raise ValueError(f"Error during file operations in {host} for file {file}: {operation_result}")
+
+        return operations_results
 
     def configure_environment(self, configuration_hosts, parallel=True):
         """Configure multiple hosts at the same time.
@@ -394,9 +432,19 @@ class WazuhEnvironmentHandler(HostManager):
             configuration_host (Map): Map with new hosts configuration
             parallel(Boolean): Enable parallel tasks
         """
-        pass
+        operations_results = None
+        if parallel:
+            host_configuration_map = [(host, configuration) for host, configuration in configuration_hosts.items()]
+            pool = Pool()
+            operations_results = pool.starmap(self.configure_host, host_configuration_map)
+        else:
+            operations_results = []
+            for host, configurations in configuration_hosts.items():
+                operations_results += self.configure_host(host, configurations)
 
-    def change_agents_configure_manager(self, agent_list, manager, use_manager_name=True):
+        return operations_results
+
+    def change_agents_configure_manager(self, agent_list, manager, calculate_manager_ip=True):
         """Change configured manager of specified agent
 
         Args:
@@ -404,9 +452,21 @@ class WazuhEnvironmentHandler(HostManager):
             manager (str): Manager name in the environment/Manager or IP.
             use_manager_name (Boolean): Replace manager name with manager IP. Default True
         """
-        pass
+        configured_manager = self.get_host_ansible_ip(manager) if calculate_manager_ip else manager
 
-    def backup_host_configuration(self, configuration_list):
+        new_configuration = {}
+
+        server_block = {'server': {'elements': [{'address': {'value': configured_manager}}]}}
+        configuration = [{'section': 'client', 'elements': [{'server': server_block}]}]
+
+        for agent in agent_list:
+            new_configuration[agent] = {
+                'ossec.conf': configuration
+            }
+
+        self.configure_environment(new_configuration)
+
+    def backup_host_configuration(self, host, configuration_list):
         """Backup specified files in
 
         Args:
@@ -414,6 +474,14 @@ class WazuhEnvironmentHandler(HostManager):
         Returns:
             dict: Host backup filepaths
         """
+        backup_paths = {}
+        for file in configuration_list:
+            temporal_folder = DEFAULT_TEMPORAL_DIRECTORY[self.get_ansible_host_os(host)]
+            new_filename = os.path.join(temporal_folder, file + '.backup',)
+            backup_paths[host][file] = new_filename
+            self.copy_file(host, self.get_file_path(host, file), new_filename, remote_src=True)
+
+        return backup_paths
 
     def backup_environment_configuration(self, configuration_list, parallel=True):
         """Backup specified files in all hosts
@@ -423,15 +491,26 @@ class WazuhEnvironmentHandler(HostManager):
         Returns:
             dict: Host backup filepaths
         """
-        pass
+        backup_paths = {}
+        if not parallel:
+            for host, backup_files in configuration_list.items():
+                backup_paths[host] = self.backup_host_configuration(host, backup_files)
+        else:
+            host_configuration_map = [(host, backup_files) for host, backup_files in configuration_list.items()]
+            pool = Pool()
+            backup_paths = pool.starmap(self.backup_host_configuration, host_configuration_map)
 
-    def restore_host_backup_configuration(self, backup_configuration):
+        return backup_paths
+
+    def restore_host_backup_configuration(self, host, backup_configuration):
         """Restore backup configuration
 
         Args:
             backup_configuration (dict): Backup configuration filepaths
         """
-        pass
+        for file, backup in backup_configuration.items():
+            self.move_file(host=host, dest_path=self.get_host_configuration_file_path(host, file),
+                           src_path=backup, remote_src=True, sudo=True)
 
     def restore_environment_backup_configuration(self, backup_configuration, parallel=True):
         """Restore environment backup configuration
@@ -439,7 +518,13 @@ class WazuhEnvironmentHandler(HostManager):
         Args:
             backup_configuration (dict): Backup configuration filepaths
         """
-        pass
+        if not parallel:
+            for host, backup_files in backup_configuration.items():
+                self.restore_host_backup_configuration(host, backup_files)
+        else:
+            host_configuration_map = [(host, backup_files) for host, backup_files in backup_configuration.items()]
+            pool = Pool()
+            pool.starmap(self.restore_host_backup_configuration, host_configuration_map)
 
     def log_search(self, host, pattern, timeout, file, escape=False, output_file='log_search_output.json'):
         """Search log in specified host file
