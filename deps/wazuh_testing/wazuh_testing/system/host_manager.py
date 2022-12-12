@@ -27,7 +27,12 @@ class HostManager:
 
         data_loader = DataLoader()
         self.inventory_manager = InventoryManager(loader=data_loader, sources=inventory_path)
-        self.variable_manager = VariableManager(loader=data_loader, inventory=self.inventory_manager)
+        self.hosts_variables = {}
+
+        variable_manager = VariableManager(loader=data_loader, inventory=self.inventory_manager)
+
+        for host in self.inventory_manager.get_hosts():
+            self.hosts_variables[host] = variable_manager.get_vars(host=self.inventory_manager.get_host(str(host)))
 
     def get_host(self, host):
         """Get the testinfra host.
@@ -69,7 +74,8 @@ class HostManager:
             testinfra.modules.base.Ansible: Host instance from hostspec
         """
         inventory_manager_host = self.inventory_manager.get_host(host)
-        return self.variable_manager.get_vars(host=inventory_manager_host)
+
+        return self.hosts_variables[inventory_manager_host]
 
     def collect_host_ansible_facts(self, host):
         """Get the ansible facts of the specified host.

@@ -497,14 +497,14 @@ class WazuhEnvironmentHandler(HostManager):
         backup_paths = {}
         if not parallel:
             for host, backup_files in configuration_list.items():
-                backup_paths[host] = self.backup_host_configuration(host, backup_files)
+                backup_paths.update(self.backup_host_configuration(host, backup_files))
         else:
             host_configuration_map = [(host, backup_files) for host, backup_files in configuration_list.items()]
             pool = Pool()
-            a = [('centos-manager', ['ossec.conf', 'local_internal_options.conf'])]
-            print("TESTING")
             print(host_configuration_map)
-            backup_paths = pool.starmap(self.backup_host_configuration, a)
+            backup_list = pool.starmap(self.backup_host_configuration, host_configuration_map)
+            for host_backup_list in backup_list:
+                backup_paths.update(host_backup_list)
 
         return backup_paths
 
@@ -514,7 +514,7 @@ class WazuhEnvironmentHandler(HostManager):
         Args:
             backup_configuration (dict): Backup configuration filepaths
         """
-        for file, backup in backup_configuration[host].items():
+        for file, backup in backup_configuration.items():
             self.copy_file(host=host, dest_path=self.get_file_path(host, file),
                            src_path=backup, remote_src=True, become=not self.is_windows(host))
 
@@ -530,7 +530,9 @@ class WazuhEnvironmentHandler(HostManager):
         else:
             host_configuration_map = [(host, backup_files) for host, backup_files in backup_configuration.items()]
             pool = Pool()
+            print("ENvironment init")
             pool.starmap(self.restore_host_backup_configuration, host_configuration_map)
+            print("Restored environment")
 
     def log_search(self, host, pattern, timeout, file, escape=False, output_file='log_search_output.json'):
         """Search log in specified host file
