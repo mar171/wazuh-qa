@@ -1,75 +1,14 @@
 import sys
 import logging
-import socketserver
-import threading
 import time
 import argparse
 from datetime import datetime
-
-LOGGER = logging.getLogger('syslog_server_simulator')
+from wazuh_testing.syslog import SyslogServer
 
 TCP, UDP = 'tcp', 'udp'
 HOST = "0.0.0.0"
-
-global total_messages
-global store_messages
-
-total_messages = 0
-lock = threading.RLock()
-
-
-class SyslogUDPHandler(socketserver.BaseRequestHandler):
-
-    def handle(self):
-        global total_messages
-        global store_messages
-
-        with lock:
-            total_messages += 1
-            if store_messages:
-                data = bytes.decode(self.request[0].strip())
-                logging.info(f"RECV: {data}")
-                socket = self.request[1]
-                with open(store_messages, 'w+') as f:
-                    f.write(f"{data}")
-
-
-class SyslogTCPHandler(socketserver.StreamRequestHandler):
-    def handle(self):
-        global total_messages
-        global store_messages
-        with lock:
-            total_messages += 1
-            if store_messages:
-                data = self.request.recv(8192).strip()
-                logging.info(f"RECV: {data}")
-                with open(store_messages, 'w+') as f:
-                    f.write(f"{data}")
-
-
-def set_logging(debug=False):
-    LOGGER.setLevel(logging.DEBUG if debug else logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(asctime)s — %(levelname)s — %(message)s"))
-    LOGGER.addHandler(handler)
-
-
-def validate_parameters(parameters):
-    """Validate parameters
-    Args:
-        parameters (argparse.Namespace): Parameters to validate
-    """
-    if parameters.protocol != TCP and parameters.protocol != UDP:
-        LOGGER.error(f"Protocol {parameters.protocol} not supported")
-        sys.exit(1)
-
-    if parameters.server_time >= 0:
-        LOGGER.error(f"Server time {parameters.server_time} should be greater than 0")
-        sys.exit(1)
-
-    if parameters.interval >= 0:
-        LOGGER.error(f"Interval {parameters.interval} should be greater than 0")
-        sys.exit(1)
+common_logger_handler = logging.StreamHandler(sys.stdout)
+common_logger_handler.setFormatter(logging.Formatter("%(asctime)s — %(levelname)s — %(message)s"))
 
 
 def get_parameters():
@@ -82,10 +21,11 @@ def get_parameters():
                             help='Port', required=False, default=514, dest='port')
 
     arg_parser.add_argument('-f', '--store-events-file', metavar='<store-events-file>', type=str,
-                            help='File where store received events', required=False, default=None, dest='file_store_events')
+                            help='File where store received events', required=False, default=None,
+                            dest='file_store_events')
 
     arg_parser.add_argument('-i', '--interval', metavar='<interval>', type=int,
-                            help='Set interval for data gathering', required=False, default=None, dest='interval')
+                            help='Set interval for data gathering', required=True, default=None, dest='interval')
 
     arg_parser.add_argument('-t', '--server-time', metavar='<server-time>', type=int,
                             help='Syslog server time', required=True, default=None, dest='server_time')
@@ -97,48 +37,39 @@ def get_parameters():
 
 
 def main():
-    global store_messages
-    global total_messages
-
-    data_total = []
+    n_messages_intervals = []
     parameters = get_parameters()
 
-    set_logging(parameters.debug)
-    validate_parameters(parameters)
-
     time_limit = time.time() + parameters.server_time
+
     store_messages = parameters.file_store_events
 
-    socketserver.TCPServer.allow_reuse_address = True
-    if parameters.protocol == TCP:
-        server = socketserver.TCPServer((HOST, parameters.port), SyslogTCPHandler)
-    elif parameters.protocol == UDP:
-        server = socketserver.UDPServer((HOST, parameters.port), SyslogUDPHandler)
+    logger_name = 'MeasureSyslogEventsLogger'
 
-    server_thread = threading.Thread(target=server.serve_forever)
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.DEBUG if parameters.debug else logging.INFO)
+    logger.addHandler(common_logger_handler)
 
-    LOGGER.info("Starting syslog server")
+    syslog_server = SyslogServer(protocol=parameters.protocol, port=parameters.port,
+                                 store_messages_filepath=store_messages,
+                                 debug=parameters.debug)
 
-    server_thread.start()
+    syslog_server.start()
     time_interval_previous = datetime.now()
 
     while True and time.time() < time_limit:
         time_interval_last = datetime.now()
         if (time_interval_last - time_interval_previous).total_seconds() >= parameters.interval:
-            data_total.append(total_messages)
-            with lock:
-                total_messages = 0
+            n_messages_intervals.append(syslog_server.get_total_messages())
+            syslog_server.reset_messages_counter()
             time_interval_previous = time_interval_last
 
-    LOGGER.info("Shutting down server")
-    server.shutdown()
+    syslog_server.shutdown()
 
-    server_thread.join()
+    logger.info(f"Messages for interval {n_messages_intervals}")
+    logger.info(f"Total messages {sum([n for n in n_messages_intervals])}")
 
-    final_messages_number = sum(messages for messages in data_total)
-    LOGGER.info(f"Total messages {final_messages_number}")
-
-    return final_messages_number
+    return n_messages_intervals
 
 
 if __name__ == '__main__':
