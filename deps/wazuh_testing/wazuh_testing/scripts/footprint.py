@@ -5,6 +5,7 @@ import threading
 import csv
 import warnings
 from datetime import datetime
+from sys import getsizeof
 
 from wazuh_testing.syslog.syslog_server import SyslogServer
 from wazuh_testing.tools.performance.binary import Monitor
@@ -27,6 +28,20 @@ DEFAULT_SYSLOG_EVENT = "Dec 25 20:45:02 MyHost example[12345]: User 'admin' logg
 
 EXTRA_INTERVALS_TO_WAIT = 3
 COUNTER_INTERVAL = 0
+
+
+def create_event(parameters):
+    event_to_use = DEFAULT_SYSLOG_EVENT if parameters.event_type == 'syslog' else DEFAULT_JSON_EVENT
+
+    event_msg_size = getsizeof(event_to_use)
+    dummy_message_size = parameters.fixed_event_size - event_msg_size
+
+    char_size = getsizeof(event_to_use[0]) - getsizeof('')
+
+    if parameters.event_type == 'syslog':
+        event_to_use += 'A' * (dummy_message_size//char_size)
+    else:
+        event_to_use.replace('event', 'event' + 'A' * (dummy_message_size//char_size))
 
 
 def clean_csv_previous_results():
@@ -222,11 +237,11 @@ def get_parameters():
     arg_parser.add_argument('-f', '--filename-header', metavar='<filename>', type=str, default=None, required=False,
                             help='Filename header', dest='filename_header')
 
-    arg_parser.add_argument('--use-default-syslog-event', metavar='<syslog-event>', type=str, default=None,
-                            required=False, help='Use syslog event', dest='use_syslog_event')
+    arg_parser.add_argument('--event-type', metavar='<event-type>', type=str, default='syslog',
+                            required=False, help='Event type', dest='event_type')
 
-    arg_parser.add_argument('--use-default-json-event', metavar='<json-event>', type=str, default=None, required=False,
-                            help='Use json event', dest='use_json_event')
+    arg_parser.add_argument('--use-fixed-event-size', metavar='<fixed-event-size>', type=int, default=None,
+                            required=False, help='Use json event', dest='fixed_event-size')
 
     return arg_parser.parse_args()
 
@@ -235,6 +250,8 @@ def main():
     parameters = get_parameters()
     process_script_parameters(parameters)
     time_limit = time.time() + parameters.testing_time
+
+    event = create_event(parameters)
 
     # Init remote syslog server
     syslog_server = start_syslog_server(protocol=parameters.syslog_server_protocol, port=parameters.syslog_server_port,
