@@ -17,15 +17,54 @@ WAZUH_STATISTICS_PROCESS = ['wazuh-analysisd', 'wazuh-syscheckd', 'wazuh-logcoll
 DATA_UNIT = 'B'
 STATISTICS_PATH = os.path.join('/tmp', 'footprint')
 EVENTS_CSV = 'events.csv'
-HEADER_SYSLOG_DATA = ['timestamp', 'time', 'syslog_alerts']
+FOOTPRINT_CSV = 'footprint.csv'
+HEADER_SYSLOG_DATA = ['timestamp', 'seconds', 'num_received_alerts']
 DEFAULT_EVENT = 'TESTING-EVENT'
 EXTRA_INTERVALS_TO_WAIT = 3
+COUNTER_INTERVAL = 0
+
+
+def clean_csv_previous_results():
+    if not os.path.isdir(STATISTICS_PATH):
+        os.mkdir(STATISTICS_PATH)
+    else:
+        for file in os.listdir(STATISTICS_PATH):
+            os.remove(os.path.join(STATISTICS_PATH, file))
+
+    os.remove(EVENTS_CSV, ignore_errors=True)
+
+    # Write the header of the CSV events file
+    write_csv_file(EVENTS_CSV, HEADER_SYSLOG_DATA)
+
+
+def start_file_stress(path, epi_file_creation, epi_file_update, epi_file_delete, event, interval,
+                      debug=False):
+
+    file_stress = FileStress(path, debug)
+    server_thread = threading.Thread(target=file_stress.start_file_stress, args=(epi_file_creation,
+                                                                                 epi_file_update,
+                                                                                 epi_file_delete,
+                                                                                 event,
+                                                                                 interval,))
+    server_thread.start()
+    return server_thread
 
 
 def write_csv_file(filename, data):
     with open(filename, 'a', newline='') as f:
         csv_writer = csv.writer(f)
         csv_writer.writerow(data)
+
+
+def remove_csv_last_lines(csv_directory, lines_to_remove=1):
+    for file in os.listdir(csv_directory):
+        with open(file, 'w+') as metric_file:
+            lines = metric_file.readlines()
+            lines = lines[:-lines_to_remove]
+
+            csv_writer = csv.writer(metric_file, delimiter=',')
+            for line in lines:
+                csv_writer.writerow(line)
 
 
 def process_script_parameters(args):
@@ -37,6 +76,104 @@ def process_script_parameters(args):
         raise ValueError('Path must be a directory')
 
 
+def start_syslog_server(protocol, port, store_messages_filepath, debug):
+    syslog_server = SyslogServer(protocol=protocol, port=port, store_messages_filepath=store_messages_filepath,
+                                 debug=debug)
+    syslog_server.start()
+
+    return syslog_server
+
+
+def write_csv_events_row(interval, syslog_server):
+    syslog_messages = reset_syslog_alerts(syslog_server)
+    interval_csv = COUNTER_INTERVAL * interval
+    COUNTER_INTERVAL += 1
+    write_csv_file(EVENTS_CSV, [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), interval_csv, syslog_messages])
+
+
+def init_processes_monitoring():
+    wazuh_monitors = []
+    for process in WAZUH_STATISTICS_PROCESS:
+        for i, pid in enumerate(Monitor.get_process_pids(process)):
+            p_name = process if i == 0 else f'{process}_child_{i}'
+            monitor = Monitor(process_name=p_name, pid=pid, value_unit=DATA_UNIT, time_step=parameters.interval,
+                              version=None, dst_dir=STATISTICS_PATH)
+            monitor.start()
+            wazuh_monitors.append(monitor)
+    return wazuh_monitors
+
+
+def reset_syslog_alerts(syslog_server):
+    syslog_messages = syslog_server.get_total_messages()
+    syslog_server.reset_messages_counter()
+    return syslog_messages
+
+
+def events_monitoring(time_limit, extra_interval, syslog_server, file_stress, interval):
+    current_time = datetime.now()
+    while time.time() <= time_limit:
+        time_interval_last = datetime.now()
+        if (time_interval_last - current_time).total_seconds() >= interval:
+
+            # Get syslog total messages received in the interval
+            write_csv_events_row(interval, syslog_server)
+
+            current_time = time_interval_last
+
+    # Stop alerts generation
+    file_stress.stop()
+
+    # Wait for extra interval to get the last messages
+    for _ in range(extra_interval):
+        time.sleep(interval)
+
+        # Get syslog total messages received in the interval
+        write_csv_events_row(interval, syslog_server)
+
+
+def create_footprint_csv_file(interval):
+    with open('footprint.csv', 'w+') as footprint_file:
+        csv_writer = csv.writer(footprint_file, delimiter=',')
+        file_content = {}
+
+        for file in os.listdir(STATISTICS_PATH):
+            if file.endswith('.csv'):
+                with open(os.path.join(STATISTICS_PATH, file), 'r') as metric_file:
+                    file_content[file] = metric_file.readlines()
+
+        # seconds, wazuh-daemon, CPU(%), RSS(KB), VMS(KB), disk_read(B), disk_written(B), FD
+        header = ['wazuh-daemon', 'seconds', 'CPU(%)', 'RSS(KB)', 'VMS(KB)', 'disk_read(B)', 'disk_written(B)', 'FD']
+        csv_writer.writerow(header)
+
+        # Remove header
+        n_lines = len(list(file_content.values())[0])
+        for i in range(1, n_lines):
+            seconds = i * interval
+            for key in file_content.keys():
+                line = file_content[key][i]
+                row_values = line.split(',')
+                daemon = row_values[0].replace('wazuh', 'ossec')
+                cpu = row_values[5]
+                rss = row_values[7]
+                vmss = row_values[6]
+                dis_read = row_values[13]
+                disk_written = row_values[14]
+                row = [daemon, seconds, cpu, rss, vmss, dis_read, disk_written]
+                csv_writer.writerow(row)
+
+
+def generate_charts():
+    # Mute annoying warnings
+    warnings.filterwarnings('ignore')
+
+    date_time = datetime.now().strftime("%Y%m%d%H%M%S")
+    syslog_alerts_data = EVENTS_CSV
+
+    # Generate the charts
+    plot_syslog_alerts(syslog_alerts_data, f"{date_time}_received_syslog_alerts.png")
+    plot_footprint(FOOTPRINT_CSV, f"{date_time}")
+
+
 def get_parameters():
     arg_parser = argparse.ArgumentParser()
 
@@ -46,7 +183,7 @@ def get_parameters():
     arg_parser.add_argument('-i', '--interval', metavar='<interval>', type=int,
                             help='Set interval for data gathering', required=False, default=1, dest='interval')
 
-    arg_parser.add_argument('-d', '--debub', metavar='<debug>', type=bool,
+    arg_parser.add_argument('-d', '--debug', metavar='<debug>', type=bool,
                             help='Enable debug mode', required=False, default=False, dest='debug')
 
     arg_parser.add_argument('--syslog-server-protocol', metavar='<protocol>', type=str,
@@ -70,147 +207,57 @@ def get_parameters():
     arg_parser.add_argument('-f', '--filename-header', metavar='<filename>', type=str, default=None, required=False,
                             help='Filename header', dest='filename_header')
 
+    arg_parser.add_argument('--use-default-syslog-event', metavar='<syslog-event>', type=str, default=None,
+                            required=False, help='Use syslog event', dest='use_syslog_event')
+
+    arg_parser.add_argument('--use-default-json-event', metavar='<json-event>', type=str, default=None, required=False,
+                            help='Use json event', dest='use_json_event')
+
     return arg_parser.parse_args()
 
 
 def main():
-
     parameters = get_parameters()
     process_script_parameters(parameters)
-
     time_limit = time.time() + parameters.testing_time
 
-    syslog_server = SyslogServer(protocol=parameters.syslog_server_protocol, port=parameters.syslog_server_port,
-                                 store_messages_filepath=None,
-                                 debug=parameters.debug)
-
     # Init remote syslog server
-    syslog_server.start()
+    syslog_server = start_syslog_server(potocol=parameters.syslog_server_protocol, port=parameters.syslog_server_port,
+                                        store_messages_filepath=None, debug=parameters.debug)
 
-    current_time = datetime.now()
-
-    if not os.path.isdir(STATISTICS_PATH):
-        os.mkdir(STATISTICS_PATH)
+    # Clean previous results and create new csv file with expected header
+    clean_csv_previous_results()
 
     # Get statistics of WAZUH_STATISTICS_PROCESS list
-    wazuh_monitors = []
-    for process in WAZUH_STATISTICS_PROCESS:
-        for i, pid in enumerate(Monitor.get_process_pids(process)):
-            p_name = process if i == 0 else f'{process}_child_{i}'
-            monitor = Monitor(process_name=p_name, pid=pid, value_unit=DATA_UNIT, time_step=parameters.interval,
-                              version=None, dst_dir=STATISTICS_PATH)
-            monitor.start()
-            wazuh_monitors.append(monitor)
+    monitors = init_processes_monitoring()
 
     # Init file stress thread
-    file_stress = FileStress(parameters.path, False)
-    server_thread = threading.Thread(target=file_stress.start_file_stress, args=(parameters.epi_file_creation,
-                                                                                 parameters.epi_file_update,
-                                                                                 parameters.epi_file_delete,
-                                                                                 DEFAULT_EVENT,
-                                                                                 parameters.interval,))
-    server_thread.start()
-
-    counter_interval = 0
-    interval_csv = counter_interval * parameters.interval
+    file_stress_thread = start_file_stress(epi_file_creation=parameters.epi_file_creation,
+                                           epi_file_update=parameters.epi_file_update,
+                                           epi_file_delete=parameters.epi_file_delete,
+                                           interval=parameters.interval, path=parameters.path,
+                                           debug=parameters.debug, event=DEFAULT_EVENT)
 
     # Set initial values - Get syslog total messages received in the interval
-    syslog_messages = syslog_server.get_total_messages()
-    syslog_server.reset_messages_counter()
-    timestamp = str(datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
-    write_csv_file(EVENTS_CSV, HEADER_SYSLOG_DATA)
-    write_csv_file(EVENTS_CSV, [timestamp, interval_csv, syslog_messages])
+    write_csv_events_row(parameters.interval, syslog_server)
 
     # For each interval, get the total messages received in the interval and write it to the csv file
-    while time.time() <= time_limit:
-        time_interval_last = datetime.now()
-        if (time_interval_last - current_time).total_seconds() >= parameters.interval:
-
-            counter_interval += 1
-            interval_csv = counter_interval*parameters.interval
-
-            # Get syslog total messages received in the interval
-            syslog_messages = syslog_server.get_total_messages()
-            syslog_server.reset_messages_counter()
-            timestamp = str(datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
-
-            write_csv_file(EVENTS_CSV, [timestamp, interval_csv, syslog_messages])
-
-            current_time = time_interval_last
-
-    # Stop alerts generation
-    file_stress.stop()
-
-    # Wait for extra interval to get the last messages
-    for _ in range(EXTRA_INTERVALS_TO_WAIT):
-        time.sleep(parameters.interval)
-        counter_interval += 1
-        interval_csv = counter_interval*parameters.interval
-
-        syslog_messages = syslog_server.get_total_messages()
-        syslog_server.reset_messages_counter()
-        timestamp = str(datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
-
-        write_csv_file(EVENTS_CSV, [timestamp, interval_csv, syslog_messages])
+    events_monitoring(time_limit, EXTRA_INTERVALS_TO_WAIT, syslog_server, file_stress_thread, parameters.interval)
 
     # Stop monitors
-    for monitor in wazuh_monitors:
+    for monitor in monitors:
         monitor.shutdown()
 
     # Stop syslog server
     syslog_server.shutdown()
 
-    # Remove statistics extra row.
-    for file in os.listdir('/tmp/footprint'):
-        with open(file, 'w+') as metric_file:
-            lines = metric_file.readlines()
-            lines = lines[:-1]
-
-            cWriter = csv.writer(metric_file, delimiter=',')
-            for line in lines:
-                cWriter.writerow(line)
+    remove_csv_last_lines(STATISTICS_PATH)
 
     # Create a csv file with the footprint data
-
-    with open('footprint.csv', 'w+') as footprint_file:
-        csv_writer = csv.writer(footprint_file, delimiter=',')
-        file_content = {}
-
-        for file in os.listdir(STATISTICS_PATH):
-            if file.endswith('.csv'):
-                with open(os.path.join(STATISTICS_PATH, file), 'r') as metric_file:
-                    file_content[file] = metric_file.readlines()
-
-        # seconds, wazuh-daemon, CPU(%), RSS(KB), VMS(KB), disk_read(B), disk_written(B), FD
-        header = ['seconds', 'wazuh-daemon', 'CPU(%)', 'RSS(KB)', 'VMS(KB)', 'disk_read(B)', 'disk_written(B)', 'FD']
-
-        # Remove header
-        n_lines = list(file_content.values())[0] - 1
-        for i in range(n_lines):
-            for value in file.items():
-                line = value[i]
-                row_values = line.split(',')
-                daemon = row_values[0].replace('wazuh', 'ossec')
-                seconds = 1
-                cpu = row_values[5]
-                rss = row_values[7]
-                vmss = row_values[6]
-                dis_read = row_values[13]
-                disk_written = row_values[14]
-                row = [daemon, seconds, cpu, rss, vmss, dis_read, disk_written]
-                csv_writer.writerow(row)
+    create_footprint_csv_file(parameters.interval)
 
     # Generating charts
-    # Mute annoying warnings
-    warnings.filterwarnings('ignore')
-
-    date_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    syslog_alerts_data = EVENTS_CSV
-    footprint_data = 'footprint.csv'
-
-    # Generate the charts
-    plot_syslog_alerts(syslog_alerts_data, f"{date_time}_received_syslog_alerts.png")
-    plot_footprint(footprint_data, f"{date_time}")
+    generate_charts()
 
 
 if __name__ == '__main__':
