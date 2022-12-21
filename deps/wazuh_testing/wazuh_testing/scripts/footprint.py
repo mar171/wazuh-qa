@@ -19,7 +19,12 @@ STATISTICS_PATH = os.path.join('/tmp', 'footprint')
 EVENTS_CSV = 'events.csv'
 FOOTPRINT_CSV = 'footprint.csv'
 HEADER_SYSLOG_DATA = ['timestamp', 'seconds', 'num_received_alerts']
-DEFAULT_EVENT = 'TESTING-EVENT'
+
+# Default events
+DEFAULT_BASIC_EVENT = 'TESTING-EVENT'
+DEFAULT_JSON_EVENT = '{"testing": "event"}'
+DEFAULT_SYSLOG_EVENT = "Dec 25 20:45:02 MyHost example[12345]: User 'admin' logged from '192.168.1.100'"
+
 EXTRA_INTERVALS_TO_WAIT = 3
 COUNTER_INTERVAL = 0
 
@@ -31,7 +36,15 @@ def clean_csv_previous_results():
         for file in os.listdir(STATISTICS_PATH):
             os.remove(os.path.join(STATISTICS_PATH, file))
 
-    os.remove(EVENTS_CSV, ignore_errors=True)
+    if os.path.exists(FOOTPRINT_CSV):
+        try:
+            os.remove(os.path.join(STATISTICS_PATH, file))
+        except OSError:
+            pass
+    try:
+        os.remove(EVENTS_CSV, ignore_errors=True)
+    except OSError:
+        pass
 
     # Write the header of the CSV events file
     write_csv_file(EVENTS_CSV, HEADER_SYSLOG_DATA)
@@ -47,7 +60,7 @@ def start_file_stress(path, epi_file_creation, epi_file_update, epi_file_delete,
                                                                                  event,
                                                                                  interval,))
     server_thread.start()
-    return server_thread
+    return file_stress
 
 
 def write_csv_file(filename, data):
@@ -85,19 +98,20 @@ def start_syslog_server(protocol, port, store_messages_filepath, debug):
 
 
 def write_csv_events_row(interval, syslog_server):
+    global COUNTER_INTERVAL
     syslog_messages = reset_syslog_alerts(syslog_server)
     interval_csv = COUNTER_INTERVAL * interval
     COUNTER_INTERVAL += 1
     write_csv_file(EVENTS_CSV, [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), interval_csv, syslog_messages])
 
 
-def init_processes_monitoring():
+def init_processes_monitoring(interval):
     wazuh_monitors = []
     for process in WAZUH_STATISTICS_PROCESS:
         for i, pid in enumerate(Monitor.get_process_pids(process)):
             p_name = process if i == 0 else f'{process}_child_{i}'
-            monitor = Monitor(process_name=p_name, pid=pid, value_unit=DATA_UNIT, time_step=parameters.interval,
-                              version=None, dst_dir=STATISTICS_PATH)
+            monitor = Monitor(process_name=p_name, pid=pid, value_unit=DATA_UNIT, time_step=interval, version=None,
+                              dst_dir=STATISTICS_PATH)
             monitor.start()
             wazuh_monitors.append(monitor)
     return wazuh_monitors
@@ -158,7 +172,8 @@ def create_footprint_csv_file(interval):
                 vmss = row_values[6]
                 dis_read = row_values[13]
                 disk_written = row_values[14]
-                row = [daemon, seconds, cpu, rss, vmss, dis_read, disk_written]
+                fd = row_values[10]
+                row = [daemon, seconds, cpu, rss, vmss, dis_read, disk_written, fd]
                 csv_writer.writerow(row)
 
 
@@ -222,21 +237,21 @@ def main():
     time_limit = time.time() + parameters.testing_time
 
     # Init remote syslog server
-    syslog_server = start_syslog_server(potocol=parameters.syslog_server_protocol, port=parameters.syslog_server_port,
+    syslog_server = start_syslog_server(protocol=parameters.syslog_server_protocol, port=parameters.syslog_server_port,
                                         store_messages_filepath=None, debug=parameters.debug)
 
     # Clean previous results and create new csv file with expected header
     clean_csv_previous_results()
 
     # Get statistics of WAZUH_STATISTICS_PROCESS list
-    monitors = init_processes_monitoring()
+    monitors = init_processes_monitoring(parameters.interval)
 
     # Init file stress thread
     file_stress_thread = start_file_stress(epi_file_creation=parameters.epi_file_creation,
                                            epi_file_update=parameters.epi_file_update,
                                            epi_file_delete=parameters.epi_file_delete,
                                            interval=parameters.interval, path=parameters.path,
-                                           debug=parameters.debug, event=DEFAULT_EVENT)
+                                           debug=parameters.debug, event=DEFAULT_SYSLOG_EVENT)
 
     # Set initial values - Get syslog total messages received in the interval
     write_csv_events_row(parameters.interval, syslog_server)
