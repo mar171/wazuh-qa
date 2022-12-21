@@ -87,7 +87,7 @@ class FileStress:
 
             file_writer_dict = {}
             for _ in range(epi_file_update):
-                for file in list_files:
+                for file in path_files:
                     new_line = f"{event}-{self.events}\n" if add_counter_to_events else f"{event}\n"
                     if not file_writer_dict.get(file):
                         file_writer_dict[file] = {'content': new_line, 'mode': 'a'}
@@ -104,13 +104,13 @@ class FileStress:
 
             # EPI file deletion
             if use_preexisting_files:
-                list_files = list_files()
-            if len(list_files) < epi_file_deletion:
+                path_files = self.list_files()
+            if len(path_files) < epi_file_deletion:
                 self.logger.error("ERROR: Number of files to delete is higher than the number of files in"
                                   "the directory.")
                 exit(-1)
 
-            files_to_delete = list_files[:epi_file_deletion]
+            files_to_delete = path_files[:epi_file_deletion]
             self.delete_files(files_to_delete)
 
             time.sleep(interval)
