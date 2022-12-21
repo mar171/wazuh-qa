@@ -17,6 +17,7 @@ STATISTICS_PATH = os.path.join('/tmp', 'footprint')
 EVENTS_CSV = 'events.csv'
 HEADER_SYSLOG_DATA = ['timestamp', 'time', 'syslog_alerts']
 DEFAULT_EVENT = 'TESTING-EVENT'
+EXTRA_INTERVALS_TO_WAIT = 3
 
 
 def write_csv_file(filename, data):
@@ -138,17 +139,17 @@ def main():
     # Stop alerts generation
     file_stress.stop()
 
-    # Wait for one extra interval to get the last messages
+    # Wait for extra interval to get the last messages
+    for _ in range(EXTRA_INTERVALS_TO_WAIT):
+        time.sleep(parameters.interval)
+        counter_interval += 1
+        interval_csv = counter_interval*parameters.interval
 
-    time.sleep(parameters.interval)
-    counter_interval += 1
-    interval_csv = counter_interval*parameters.interval
+        syslog_messages = syslog_server.get_total_messages()
+        syslog_server.reset_messages_counter()
+        timestamp = str(datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
 
-    syslog_messages = syslog_server.get_total_messages()
-    syslog_server.reset_messages_counter()
-    timestamp = str(datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
-
-    write_csv_file(EVENTS_CSV, [timestamp, interval_csv, syslog_messages])
+        write_csv_file(EVENTS_CSV, [timestamp, interval_csv, syslog_messages])
 
     # Stop monitors
     for monitor in wazuh_monitors:
