@@ -120,7 +120,7 @@ def main():
     # For each interval, get the total messages received in the interval and write it to the csv file
     while time.time() <= time_limit:
         time_interval_last = datetime.now()
-        if (time_interval_last - time_interval_previous).total_seconds() >= parameters.interval:
+        if (time_interval_last - current_time).total_seconds() >= parameters.interval:
 
             counter_interval += 1
             interval_csv = counter_interval*parameters.interval
@@ -132,7 +132,7 @@ def main():
 
             write_csv_file(EVENTS_CSV, [timestamp, interval_csv, syslog_messages])
 
-            time_interval_previous = time_interval_last
+            current_time = time_interval_last
 
     # Stop alerts generation
     file_stress.stop()
