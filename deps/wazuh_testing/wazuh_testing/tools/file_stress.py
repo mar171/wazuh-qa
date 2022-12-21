@@ -69,23 +69,18 @@ class FileStress:
             self.delete_file(os.path.join(self.path, file))
 
     def start_file_stress(self, epi_file_creation, epi_file_update, epi_file_deletion, event, interval=1,
-                          filename='file', use_preexisting_files=False, add_counter_to_events=True):
-        if use_preexisting_files:
+                          filename='file', add_counter_to_events=True):
+        use_preexisting_files = False
+        if (epi_file_creation < epi_file_update or epi_file_creation < epi_file_deletion):
             self.logger.info("Using preexisting files.")
-            preexisting_files = list_files()
+            use_preexisting_files = True
+            preexisting_files = self.list_files()
 
-        if (epi_file_creation < epi_file_update or epi_file_creation < epi_file_deletion) and not use_preexisting_files:
-            self.logger.error("ERROR: EPS of file creation is lower than EPS of file update or deletion.")
-            exit(-1)
-
-        while True and not self.stop_file_stress:
-            # If EPS created files < modified or deleted --> Error, use preexisting files option
-            # Otherwise use created files in each interval to generate delete and mofified alerts
-
+        while not self.stop_file_stress:
             # EPI file creation
-            list_files = self.create_files(epi_file_creation, filename)
+            path_files = self.create_files(epi_file_creation, filename)
             if use_preexisting_files:
-                list_files = preexisting_files
+                path_files = preexisting_files
 
             # EPI file update
             n_update_events = 0
@@ -95,7 +90,7 @@ class FileStress:
                 for file in list_files:
                     new_line = f"{event}-{self.events}\n" if add_counter_to_events else f"{event}\n"
                     if not file_writer_dict.get(file):
-                        file_writer_dict[file] = {'content': new_line , 'mode': 'a'}
+                        file_writer_dict[file] = {'content': new_line, 'mode': 'a'}
                     else:
                         file_writer_dict[file]['content'] += new_line
 
@@ -111,7 +106,8 @@ class FileStress:
             if use_preexisting_files:
                 list_files = list_files()
             if len(list_files) < epi_file_deletion:
-                self.logger.error("ERROR: Number of files to delete is higher than the number of files in the directory.")
+                self.logger.error("ERROR: Number of files to delete is higher than the number of files in"
+                                  "the directory.")
                 exit(-1)
 
             files_to_delete = list_files[:epi_file_deletion]

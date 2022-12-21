@@ -42,7 +42,7 @@ def clean_csv_previous_results():
         except OSError:
             pass
     try:
-        os.remove(EVENTS_CSV, ignore_errors=True)
+        os.remove(EVENTS_CSV)
     except OSError:
         pass
 
