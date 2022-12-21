@@ -174,6 +174,7 @@ CB_MAXIMUM_FILE_SIZE = r'.*Maximum file size limit to generate diff information 
 CB_AGENT_CONNECT = r'.* Connected to the server .*'
 CB_FOLDERS_MONITORED_REALTIME = r'.*Folders monitored with real-time engine: (\d+)'
 CB_REALTIME_WHODATA_ENGINE_STARTED = r'.*File integrity monitoring (real-time Whodata) engine started.*'
+CB_WHODATA_CANNOT_START = r'.*Who-data engine could not start. (Switching who-data to real-time).'
 CB_DISK_QUOTA_LIMIT_CONFIGURED_VALUE = r'.*Maximum disk quota size limit configured to \'(\d+) KB\'.*'
 CB_FILE_EXCEEDS_DISK_QUOTA = r'.*The (.*) of the file size \'(.*)\' exceeds the disk_quota.*'
 CB_FILE_SIZE_LIMIT_REACHED = r'.*File \'(.*)\' is too big for configured maximum size to perform diff operation\.'

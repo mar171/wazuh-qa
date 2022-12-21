@@ -65,14 +65,14 @@ import re
 import subprocess
 
 import pytest
-import wazuh_testing.fim as fim
 from distro import id
-from wazuh_testing.tools.configuration import load_wazuh_configurations, check_apply_test
-from wazuh_testing.tools.monitoring import FileMonitor
+from wazuh_testing import LOG_FILE_PATH
+from wazuh_testing.tools.configuration import load_wazuh_configurations
+from wazuh_testing.tools.monitoring import FileMonitor, generate_monitoring_callback
 from wazuh_testing.tools.utils import retry
+from wazuh_testing.modules.fim import CB_WHODATA_CANNOT_START
 
 # Marks
-
 pytestmark = [pytest.mark.linux, pytest.mark.tier(level=1)]
 
 # Variables
@@ -82,7 +82,7 @@ configurations_path = os.path.join(test_data_path, 'wazuh_conf.yaml')
 test_directories = [os.path.join('/', 'testdir1'), os.path.join('/', 'testdir2'), os.path.join('/', 'testdir3')]
 testdir1, testdir2, testdir3 = test_directories
 
-wazuh_log_monitor = FileMonitor(fim.LOG_FILE_PATH)
+wazuh_log_monitor = FileMonitor(LOG_FILE_PATH)
 
 # Configurations
 
@@ -141,11 +141,7 @@ def uninstall_install_audit():
 
 
 # Test
-
-@pytest.mark.parametrize('tags_to_apply', [
-    {'config1'}
-])
-def test_move_folders_to_realtime(tags_to_apply, get_configuration, uninstall_install_audit,
+def test_move_folders_to_realtime(get_configuration, uninstall_install_audit,
                                   configure_environment, restart_syscheckd):
     '''
     description: Check if FIM switches the monitoring mode of the testing directories from 'who-data'
@@ -160,9 +156,6 @@ def test_move_folders_to_realtime(tags_to_apply, get_configuration, uninstall_in
     tier: 1
 
     parameters:
-        - tags_to_apply:
-            type: set
-            brief: Run test if match with a configuration identifier, skip otherwise.
         - get_configuration:
             type: fixture
             brief: Get configurations from the module.
@@ -192,8 +185,7 @@ def test_move_folders_to_realtime(tags_to_apply, get_configuration, uninstall_in
         - realtime
         - who_data
     '''
-    check_apply_test(tags_to_apply, get_configuration['tags'])
 
-    wazuh_log_monitor.start(timeout=20, callback=fim.callback_audit_cannot_start,
+    wazuh_log_monitor.start(timeout=20, callback=generate_monitoring_callback(CB_WHODATA_CANNOT_START),
                             error_message='Did not receive expected "Who-data engine could not start. '
                                           'Switching who-data to real-time" event')
