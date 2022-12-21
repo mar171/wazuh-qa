@@ -3,11 +3,13 @@ import time
 import os
 import threading
 import csv
+import warnings
 from datetime import datetime
 
 from wazuh_testing.syslog.syslog_server import SyslogServer
 from wazuh_testing.tools.performance.binary import Monitor
 from wazuh_testing.tools.file_stress import FileStress
+from wazuh_testing.performance.test_local_mode.generate_charts import plot_syslog_alerts, plot_footprint
 
 
 WAZUH_METRICS = ['analysis']
@@ -167,6 +169,48 @@ def main():
             cWriter = csv.writer(metric_file, delimiter=',')
             for line in lines:
                 cWriter.writerow(line)
+
+    # Create a csv file with the footprint data
+
+    with open('footprint.csv', 'w+') as footprint_file:
+        csv_writer = csv.writer(footprint_file, delimiter=',')
+        file_content = {}
+
+        for file in os.listdir(STATISTICS_PATH):
+            if file.endswith('.csv'):
+                with open(os.path.join(STATISTICS_PATH, file), 'r') as metric_file:
+                    file_content[file] = metric_file.readlines()
+
+        # seconds, wazuh-daemon, CPU(%), RSS(KB), VMS(KB), disk_read(B), disk_written(B), FD
+        header = ['seconds', 'wazuh-daemon', 'CPU(%)', 'RSS(KB)', 'VMS(KB)', 'disk_read(B)', 'disk_written(B)', 'FD']
+
+        # Remove header
+        n_lines = list(file_content.values())[0] - 1
+        for i in range(n_lines):
+            for value in file.items():
+                line = value[i]
+                row_values = line.split(',')
+                daemon = row_values[0].replace('wazuh', 'ossec')
+                seconds = 1
+                cpu = row_values[5]
+                rss = row_values[7]
+                vmss = row_values[6]
+                dis_read = row_values[13]
+                disk_written = row_values[14]
+                row = [daemon, seconds, cpu, rss, vmss, dis_read, disk_written]
+                csv_writer.writerow(row)
+
+    # Generating charts
+    # Mute annoying warnings
+    warnings.filterwarnings('ignore')
+
+    date_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    syslog_alerts_data = EVENTS_CSV
+    footprint_data = 'footprint.csv'
+
+    # Generate the charts
+    plot_syslog_alerts(syslog_alerts_data, f"{date_time}_received_syslog_alerts.png")
+    plot_footprint(footprint_data, f"{date_time}")
 
 
 if __name__ == '__main__':
