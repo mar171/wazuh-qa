@@ -9,7 +9,7 @@ from datetime import datetime
 from wazuh_testing.syslog.syslog_server import SyslogServer
 from wazuh_testing.tools.performance.binary import Monitor
 from wazuh_testing.tools.file_stress import FileStress
-from wazuh_testing.performance.test_local_mode.generate_charts import plot_syslog_alerts, plot_footprint
+from wazuh_testing.tools.test_local_mode.generate_charts import plot_syslog_alerts, plot_footprint
 
 
 WAZUH_METRICS = ['analysis']
