@@ -115,6 +115,7 @@ def main():
     syslog_messages = syslog_server.get_total_messages()
     syslog_server.reset_messages_counter()
     timestamp = str(datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
+    write_csv_file(EVENTS_CSV, HEADER_SYSLOG_DATA)
     write_csv_file(EVENTS_CSV, [timestamp, interval_csv, syslog_messages])
 
     # For each interval, get the total messages received in the interval and write it to the csv file
