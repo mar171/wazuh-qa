@@ -32,16 +32,18 @@ COUNTER_INTERVAL = 0
 
 def create_event(parameters):
     event_to_use = DEFAULT_SYSLOG_EVENT if parameters.event_type == 'syslog' else DEFAULT_JSON_EVENT
+    if parameters.fixed_event_size:
 
-    event_msg_size = getsizeof(event_to_use)
-    dummy_message_size = parameters.fixed_event_size - event_msg_size
+        event_msg_size = getsizeof(event_to_use)
+        dummy_message_size = parameters.fixed_event_size - event_msg_size
 
-    char_size = getsizeof(event_to_use[0]) - getsizeof('')
+        char_size = getsizeof(event_to_use[0]) - getsizeof('')
 
-    if parameters.event_type == 'syslog':
-        event_to_use += 'A' * (dummy_message_size//char_size)
-    else:
-        event_to_use.replace('event', 'event' + 'A' * (dummy_message_size//char_size))
+        if parameters.event_type == 'syslog':
+            event_to_use += 'A' * (dummy_message_size//char_size)
+        else:
+            event_to_use = event_to_use.replace('event', 'event' + 'A' * (dummy_message_size//char_size))
+    return event_to_use
 
 
 def clean_csv_previous_results():
@@ -66,14 +68,14 @@ def clean_csv_previous_results():
 
 
 def start_file_stress(path, epi_file_creation, epi_file_update, epi_file_delete, event, interval,
-                      debug=False):
+                      debug=False, add_counter_to_events=True):
 
     file_stress = FileStress(path, debug)
     server_thread = threading.Thread(target=file_stress.start_file_stress, args=(epi_file_creation,
                                                                                  epi_file_update,
                                                                                  epi_file_delete,
                                                                                  event,
-                                                                                 interval,))
+                                                                                 interval, add_counter_to_events))
     server_thread.start()
     return file_stress
 
@@ -241,7 +243,7 @@ def get_parameters():
                             required=False, help='Event type', dest='event_type')
 
     arg_parser.add_argument('--use-fixed-event-size', metavar='<fixed-event-size>', type=int, default=None,
-                            required=False, help='Use json event', dest='fixed_event-size')
+                            required=False, help='Use json event', dest='fixed_event_size')
 
     return arg_parser.parse_args()
 
@@ -268,7 +270,7 @@ def main():
                                            epi_file_update=parameters.epi_file_update,
                                            epi_file_delete=parameters.epi_file_delete,
                                            interval=parameters.interval, path=parameters.path,
-                                           debug=parameters.debug, event=DEFAULT_SYSLOG_EVENT)
+                                           debug=parameters.debug, event=event, add_counter_to_events=False)
 
     # Set initial values - Get syslog total messages received in the interval
     write_csv_events_row(parameters.interval, syslog_server)

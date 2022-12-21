@@ -89,7 +89,7 @@ class FileStress:
             file_writer_dict = {}
             for _ in range(epi_file_update):
                 for file in path_files:
-                    new_line = f"{event}-{self.events}\n" if add_counter_to_events else f"{event}\n"
+                    new_line = f"{event}\n"
                     if not file_writer_dict.get(file):
                         file_writer_dict[file] = {'content': [new_line], 'mode': 'a'}
                     else:
