@@ -54,8 +54,9 @@ class FileStress:
     def modify_files(self, file_writer_dict):
         for file, variables in file_writer_dict.items():
             with open(os.path.join(self.path, file), variables.get('mode', 'a')) as file_operator:
-                file_operator.write(variables['content'])
-                self.events += 1
+                for line in variables['content']:
+                    file_operator.write(line)
+                    self.events += 1
 
     def delete_file(self, file):
         try:
@@ -90,21 +91,22 @@ class FileStress:
                 for file in path_files:
                     new_line = f"{event}-{self.events}\n" if add_counter_to_events else f"{event}\n"
                     if not file_writer_dict.get(file):
-                        file_writer_dict[file] = {'content': new_line, 'mode': 'a'}
+                        file_writer_dict[file] = {'content': [new_line], 'mode': 'a'}
                     else:
                         file_writer_dict[file]['content'] += new_line
 
                     n_update_events += 1
                     self.events += 1
 
-                if n_update_events >= epi_file_update:
-                    break
+                    if n_update_events >= epi_file_update:
+                        break
 
             self.modify_files(file_writer_dict)
 
             # EPI file deletion
             if use_preexisting_files:
                 path_files = self.list_files()
+
             if len(path_files) < epi_file_deletion:
                 self.logger.error("ERROR: Number of files to delete is higher than the number of files in"
                                   "the directory.")

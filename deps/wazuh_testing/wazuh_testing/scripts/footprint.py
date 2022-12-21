@@ -38,7 +38,7 @@ def clean_csv_previous_results():
 
     if os.path.exists(FOOTPRINT_CSV):
         try:
-            os.remove(os.path.join(STATISTICS_PATH, file))
+            os.remove(FOOTPRINT_CSV)
         except OSError:
             pass
     try:
