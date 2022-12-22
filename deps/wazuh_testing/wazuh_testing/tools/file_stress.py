@@ -7,6 +7,7 @@ import uuid
 common_logger_handler = logging.StreamHandler(sys.stdout)
 common_logger_handler.setFormatter(logging.Formatter("%(asctime)s — FileStress  — %(levelname)s  —  %(message)s"))
 
+
 class FileStress:
     def __init__(self, path_list, debug):
         self.path_list = path_list

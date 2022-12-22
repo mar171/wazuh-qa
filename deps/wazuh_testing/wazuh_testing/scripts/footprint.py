@@ -30,6 +30,7 @@ HEADER_SYSLOG_DATA = ['timestamp', 'seconds', 'num_received_alerts', 'num_alert_
 DEFAULT_BASIC_EVENT = 'TESTING-EVENT'
 DEFAULT_JSON_EVENT = '{"testing": "event"}'
 DEFAULT_SYSLOG_EVENT = "Dec 25 20:45:02 MyHost example[12345]: User 'admin' logged from '192.168.1.100'"
+ALERTS_JSON = '/var/ossec/logs/alerts/alerts.json'
 
 EXTRA_INTERVALS_TO_WAIT = 3
 COUNTER_INTERVAL = 0
@@ -132,14 +133,14 @@ def write_csv_events_row(interval, syslog_server):
     interval_csv = COUNTER_INTERVAL * interval
     COUNTER_INTERVAL += 1
 
-    with open(r"/var/ossec/logs/alerts/alerts.json", 'r') as fp:
+    with open(ALERTS_JSON, 'r') as fp:
         for count, line in enumerate(fp):
             pass
     new_alerts = count - N_ALERTS_JSON
     N_ALERTS_JSON = count
 
-
-    write_csv_file(EVENTS_CSV, [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), interval_csv, syslog_messages, new_alerts])
+    write_csv_file(EVENTS_CSV, [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), interval_csv, syslog_messages,
+                                new_alerts])
 
 
 def init_processes_monitoring(interval):
@@ -222,7 +223,8 @@ def generate_charts():
     syslog_alerts_data = EVENTS_CSV
 
     # Generate the charts
-    plot_syslog_alerts(syslog_alerts_data, f"{date_time}_received_syslog_alerts.png")
+    plot_syslog_alerts(syslog_alerts_data)
+
     plot_footprint(FOOTPRINT_CSV, f"{date_time}")
 
 
@@ -283,7 +285,7 @@ def main():
     logger.addHandler(common_logger_handler)
 
     logger.info("Counting preliminary alerts")
-    with open(r"/var/ossec/logs/alerts/alerts.json", 'r') as fp:
+    with open(ALERTS_JSON, 'r') as fp:
         for count, line in enumerate(fp):
             pass
 

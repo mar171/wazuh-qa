@@ -41,7 +41,7 @@ def generate_simple_chart(x_data, y_data, legend_label=None, x_label=None, y_lab
     plt.clf()
 
 
-def plot_syslog_alerts(source_file, output_file_name):
+def plot_syslog_alerts(source_file):
     """Generate the syslog alerts chart.
 
     Args:
@@ -49,8 +49,12 @@ def plot_syslog_alerts(source_file, output_file_name):
         output_file_name (str): Output chart file name.
     """
     dataframe = pd.read_csv(source_file)
+
     generate_simple_chart(dataframe['seconds'], dataframe['num_received_alerts'], x_label='Time (s)',
-                          y_label='Alerts', title='Alerts received', output=output_file_name)
+                          y_label='Syslog Alerts', title='Syslog Alerts received', output='syslog_alerts.png')
+
+    generate_simple_chart(dataframe['seconds'], dataframe['num_received_alerts'], x_label='Time (s)',
+                          y_label='Alerts', title='Alerts', output='alerts.png')
 
 
 def plot_footprint(source_file, output_file_name):
