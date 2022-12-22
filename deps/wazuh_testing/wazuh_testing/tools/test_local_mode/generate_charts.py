@@ -53,7 +53,7 @@ def plot_syslog_alerts(source_file):
     generate_simple_chart(dataframe['seconds'], dataframe['num_received_alerts'], x_label='Time (s)',
                           y_label='Syslog Alerts', title='Syslog Alerts received', output='syslog_alerts.png')
 
-    generate_simple_chart(dataframe['seconds'], dataframe['num_received_alerts'], x_label='Time (s)',
+    generate_simple_chart(dataframe['seconds'], dataframe['num_alert_json'], x_label='Time (s)',
                           y_label='Alerts', title='Alerts', output='alerts.png')
 
 

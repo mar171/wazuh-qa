@@ -44,7 +44,7 @@ class FileStress:
             new_id = str(uuid.uuid4())
             file_name = f"{filename}-{new_id}-{self.filename_counter}"
 
-            filepath = os.path.join(self.path_list[self.filename_counter%n_directories], file_name)
+            filepath = os.path.join(self.path_list[self.filename_counter % n_directories], file_name)
             self.create_file(filepath)
             self.filename_counter += 1
             file_created.append(file_name)
@@ -62,7 +62,7 @@ class FileStress:
 
     def modify_files(self, file_writer_dict):
         for file, variables in file_writer_dict.items():
-            with open(file,'a') as file_operator:
+            with open(file, 'a') as file_operator:
                 for line in variables['content']:
                     file_operator.write(line)
                     self.events += 1
@@ -94,7 +94,7 @@ class FileStress:
             # EPI file creation
 
             if epi_file_creation >= 0:
-                self.logger.info(f"Creating {epi_file_creation} events")
+                self.logger.info(f"Creating {epi_file_creation} creation events")
 
             path_files = self.create_files(epi_file_creation, filename)
             if use_preexisting_files:
@@ -104,7 +104,7 @@ class FileStress:
             n_update_events = 0
 
             if epi_file_update >= 0:
-                self.logger.info(f"Creating {epi_file_update} events")
+                self.logger.info(f"Creating {epi_file_update} update events")
 
             file_writer_dict = {}
             for _ in range(epi_file_update):
