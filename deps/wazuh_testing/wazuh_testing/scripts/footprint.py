@@ -2,6 +2,8 @@ import argparse
 import time
 import os
 import threading
+import logging
+import sys
 import csv
 import warnings
 from datetime import datetime
@@ -12,6 +14,9 @@ from wazuh_testing.tools.performance.binary import Monitor
 from wazuh_testing.tools.file_stress import FileStress
 from wazuh_testing.tools.test_local_mode.generate_charts import plot_syslog_alerts, plot_footprint
 
+common_logger_handler = logging.StreamHandler(sys.stdout)
+common_logger_handler.setFormatter(logging.Formatter("Footprint: %(asctime)s — %(levelname)s — %(message)s"))
+
 
 WAZUH_METRICS = ['analysis']
 WAZUH_STATISTICS_PROCESS = ['wazuh-analysisd', 'wazuh-syscheckd', 'wazuh-logcollector']
@@ -19,7 +24,7 @@ DATA_UNIT = 'B'
 STATISTICS_PATH = os.path.join('/tmp', 'footprint')
 EVENTS_CSV = 'events.csv'
 FOOTPRINT_CSV = 'footprint.csv'
-HEADER_SYSLOG_DATA = ['timestamp', 'seconds', 'num_received_alerts']
+HEADER_SYSLOG_DATA = ['timestamp', 'seconds', 'num_received_alerts', 'num_alert_json']
 
 # Default events
 DEFAULT_BASIC_EVENT = 'TESTING-EVENT'
@@ -28,6 +33,8 @@ DEFAULT_SYSLOG_EVENT = "Dec 25 20:45:02 MyHost example[12345]: User 'admin' logg
 
 EXTRA_INTERVALS_TO_WAIT = 3
 COUNTER_INTERVAL = 0
+
+global N_ALERTS_JSON
 
 
 def create_event(parameters):
@@ -75,7 +82,7 @@ def start_file_stress(path, epi_file_creation, epi_file_update, epi_file_delete,
                                                                                  epi_file_update,
                                                                                  epi_file_delete,
                                                                                  event,
-                                                                                 interval, add_counter_to_events))
+                                                                                 interval, 'file', False))
     server_thread.start()
     return file_stress
 
@@ -102,8 +109,12 @@ def process_script_parameters(args):
         raise ValueError('Testing time must be greater than 0')
     if args.interval <= 0:
         raise ValueError('Interval must be greater than 0')
-    if not (os.path.exists(args.path) and os.path.isdir(args.path)):
-        raise ValueError('Path must be a directory')
+
+    path_list = args.path.split(',')
+
+    for path in path_list:
+        if not (os.path.exists(path) and os.path.isdir(path)):
+            raise ValueError('Path must be a directory')
 
 
 def start_syslog_server(protocol, port, store_messages_filepath, debug):
@@ -116,10 +127,19 @@ def start_syslog_server(protocol, port, store_messages_filepath, debug):
 
 def write_csv_events_row(interval, syslog_server):
     global COUNTER_INTERVAL
+    global N_ALERTS_JSON
     syslog_messages = reset_syslog_alerts(syslog_server)
     interval_csv = COUNTER_INTERVAL * interval
     COUNTER_INTERVAL += 1
-    write_csv_file(EVENTS_CSV, [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), interval_csv, syslog_messages])
+
+    with open(r"/var/ossec/logs/alerts/alerts.json", 'r') as fp:
+        for count, line in enumerate(fp):
+            pass
+    new_alerts = count - N_ALERTS_JSON
+    N_ALERTS_JSON = count
+
+
+    write_csv_file(EVENTS_CSV, [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), interval_csv, syslog_messages, new_alerts])
 
 
 def init_processes_monitoring(interval):
@@ -245,12 +265,30 @@ def get_parameters():
     arg_parser.add_argument('--use-fixed-event-size', metavar='<fixed-event-size>', type=int, default=None,
                             required=False, help='Use json event', dest='fixed_event_size')
 
+    arg_parser.add_argument('--generate-graphics', metavar='<generate-graphics>', type=bool, default=False,
+                            required=False, help='Enable graphics generation', dest='generate_graphics')
+
     return arg_parser.parse_args()
 
 
 def main():
+    global N_ALERTS_JSON
+
     parameters = get_parameters()
     process_script_parameters(parameters)
+
+    logger_name = "Footprint"
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.DEBUG if parameters.debug else logging.INFO)
+    logger.addHandler(common_logger_handler)
+
+    logger.info("Counting preliminary alerts")
+    with open(r"/var/ossec/logs/alerts/alerts.json", 'r') as fp:
+        for count, line in enumerate(fp):
+            pass
+
+    N_ALERTS_JSON = count
+
     time_limit = time.time() + parameters.testing_time
 
     event = create_event(parameters)
@@ -260,16 +298,18 @@ def main():
                                         store_messages_filepath=None, debug=parameters.debug)
 
     # Clean previous results and create new csv file with expected header
+    logger.info("Clean previous footprint csv data")
     clean_csv_previous_results()
 
     # Get statistics of WAZUH_STATISTICS_PROCESS list
+    logger.info("Init processes monitoring")
     monitors = init_processes_monitoring(parameters.interval)
 
     # Init file stress thread
     file_stress_thread = start_file_stress(epi_file_creation=parameters.epi_file_creation,
                                            epi_file_update=parameters.epi_file_update,
                                            epi_file_delete=parameters.epi_file_delete,
-                                           interval=parameters.interval, path=parameters.path,
+                                           interval=parameters.interval, path=parameters.path.split(','),
                                            debug=parameters.debug, event=event, add_counter_to_events=False)
 
     # Set initial values - Get syslog total messages received in the interval
@@ -279,6 +319,7 @@ def main():
     events_monitoring(time_limit, EXTRA_INTERVALS_TO_WAIT, syslog_server, file_stress_thread, parameters.interval)
 
     # Stop monitors
+    logger.info("Shutting down monitors")
     for monitor in monitors:
         monitor.shutdown()
 
@@ -288,10 +329,13 @@ def main():
     remove_csv_last_lines(STATISTICS_PATH)
 
     # Create a csv file with the footprint data
+    logger.info("Creating footpring csv")
     create_footprint_csv_file(parameters.interval)
 
     # Generating charts
-    generate_charts()
+    if parameters.generate_graphics:
+        logger.info("Generating charts")
+        generate_charts()
 
 
 if __name__ == '__main__':

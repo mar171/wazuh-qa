@@ -1,12 +1,13 @@
-import sys
 import logging
 import socketserver
 import threading
+import logging
+import sys
 
 TCP, UDP = 'tcp', 'udp'
 HOST = "0.0.0.0"
 common_logger_handler = logging.StreamHandler(sys.stdout)
-common_logger_handler.setFormatter(logging.Formatter("%(asctime)s — %(levelname)s — %(message)s"))
+common_logger_handler.setFormatter(logging.Formatter("%(asctime)s — SyslogServer  — %(levelname)s  —  %(message)s"))
 
 
 class SyslogTCPServer(socketserver.TCPServer):
@@ -53,16 +54,17 @@ class SyslogUDPServer(socketserver.UDPServer):
         self._n_messages = value
 
     def reset_messages_counter(self):
-        self._n_messages = 0
+        with self.lock:
+            self._n_messages = 0
 
 
 class SyslogUDPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         with self.server.lock:
             self.server.n_messages += 1
+            data = bytes.decode(self.request[0].strip())
+            self.server.logger.debug(f"Received message: {data}")
             if self.server.store_messages_filepath:
-                data = bytes.decode(self.request[0].strip())
-                self.server.logger.DEBUG(f"Received message: {data}")
                 with open(self.server.store_messages_filepath, 'w+') as f:
                     f.write(f"{data}")
 
@@ -71,9 +73,9 @@ class SyslogTCPHandler(socketserver.StreamRequestHandler):
     def handle(self):
         with self.server.lock:
             self.server.n_messages += 1
+            data = self.request.recv(8192).strip()
+            self.server.logger.debug(f"Received message: {data}")
             if self.server.store_messages_filepath:
-                data = self.request.recv(8192).strip()
-                self.server.logger.DEBUG(f"Received message: {data}")
                 with open(self.server.store_messages_filepath, 'w+') as f:
                     f.write(f"{data}")
 
