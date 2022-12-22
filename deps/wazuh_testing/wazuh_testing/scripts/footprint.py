@@ -15,7 +15,7 @@ from wazuh_testing.tools.file_stress import FileStress
 from wazuh_testing.tools.test_local_mode.generate_charts import plot_syslog_alerts, plot_footprint
 
 common_logger_handler = logging.StreamHandler(sys.stdout)
-common_logger_handler.setFormatter(logging.Formatter("Footprint: %(asctime)s — %(levelname)s — %(message)s"))
+common_logger_handler.setFormatter(logging.Formatter("%(asctime)s — FootPrint —  %(levelname)s — %(message)s"))
 
 
 WAZUH_METRICS = ['analysis']

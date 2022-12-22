@@ -89,10 +89,12 @@ class FileStress:
             preexisting_files = self.list_files()
             self.logger.debug(f"{preexisting_files}")
 
-
         while not self.stop_file_stress:
             # EPI file creation
-            self.logger.info(f"Creating {epi_file_creation} events")
+
+            if epi_file_creation >= 0:
+                self.logger.info(f"Creating {epi_file_creation} events")
+
             path_files = self.create_files(epi_file_creation, filename)
             if use_preexisting_files:
                 path_files = preexisting_files
@@ -100,7 +102,9 @@ class FileStress:
             # EPI file update
             n_update_events = 0
 
-            self.logger.info(f"Creating {epi_file_update} events")
+            if epi_file_update >= 0:
+                self.logger.info(f"Creating {epi_file_update} events")
+
             file_writer_dict = {}
             for _ in range(epi_file_update):
                 for file in path_files:
@@ -121,7 +125,9 @@ class FileStress:
             self.modify_files(file_writer_dict)
 
             # EPI file deletion
-            self.logger.info(f"Creating {epi_file_deletion} events")
+            if epi_file_deletion >= 0:
+                self.logger.info(f"Creating {epi_file_deletion} deletion events")
+
             if use_preexisting_files:
                 path_files = self.list_files()
 
