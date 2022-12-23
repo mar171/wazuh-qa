@@ -95,9 +95,16 @@ def write_csv_file(filename, data):
 
 
 def remove_csv_last_lines(csv_directory, lines_to_remove=1):
+    global EVENTS_CSV
+
+    n_rows_events = 0
+    with open(file, 'w+') as events_file:
+        n_rows_events = events_file.readlines()
+
     for file in os.listdir(csv_directory):
         with open(file, 'w+') as metric_file:
             lines = metric_file.readlines()
+            lines_to_remove = len(lines) - n_rows_events
             lines = lines[:-lines_to_remove]
 
             csv_writer = csv.writer(metric_file, delimiter=',')
@@ -334,7 +341,7 @@ def main():
     # Stop syslog server
     syslog_server.shutdown()
 
-    remove_csv_last_lines(STATISTICS_PATH)
+    remove_csv_extra_lines(STATISTICS_PATH)
 
     # Create a csv file with the footprint data
     logger.info("Creating footpring csv")
