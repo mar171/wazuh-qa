@@ -94,22 +94,24 @@ def write_csv_file(filename, data):
         csv_writer.writerow(data)
 
 
-def remove_csv_last_lines(csv_directory, lines_to_remove=1):
+def remove_csv_extra_lines(csv_directory):
     global EVENTS_CSV
 
     n_rows_events = 0
-    with open(file, 'w+') as events_file:
-        n_rows_events = events_file.readlines()
+    with open(EVENTS_CSV, 'r') as events_file:
+        n_rows_events = len(events_file.readlines())
 
     for file in os.listdir(csv_directory):
-        with open(file, 'w+') as metric_file:
-            lines = metric_file.readlines()
-            lines_to_remove = len(lines) - n_rows_events
-            lines = lines[:-lines_to_remove]
+        filepath = os.path.join(csv_directory, file)
+        new_file_content = None
+        with open(filepath, 'r') as metric_file:
+            current_data = metric_file.readlines()
+            lines_to_remove = len(current_data) - n_rows_events
+            new_file_content = current_data[:-lines_to_remove]
 
-            csv_writer = csv.writer(metric_file, delimiter=',')
-            for line in lines:
-                csv_writer.writerow(line)
+        with open(filepath, 'w+') as metric_file:
+            for line in new_file_content:
+                metric_file.write(line)
 
 
 def process_script_parameters(args):
