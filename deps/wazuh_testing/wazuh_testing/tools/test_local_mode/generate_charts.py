@@ -57,7 +57,7 @@ def plot_syslog_alerts(source_file):
                           y_label='Alerts', title='Alerts', output='alerts.png')
 
 
-def plot_footprint(source_file, output_file_name):
+def plot_footprint(source_file, output_file_name, unit):
     """Generate the footprint charts (one per daemon and stat).
 
     Args:
@@ -67,10 +67,10 @@ def plot_footprint(source_file, output_file_name):
     dataframe = pd.read_csv(source_file)
     footprint_stats = {
         'CPU(%)': 'cpu',
-        'RSS(KB)': 'rss',
-        'disk_read(B)': 'disk_read',
-        'disk_written(B)': 'disk_written',
-        'VMS(KB)': 'vms',
+        f'RSS({unit})': 'rss',
+        f'disk_read({unit})': 'disk_read',
+        f'disk_written({unit})': 'disk_written',
+        f'VMS({unit})': 'vms',
         'FD': 'fd'
     }
     daemons = ['ossec-analysisd', 'ossec-syscheckd', 'ossec-logcollector']
