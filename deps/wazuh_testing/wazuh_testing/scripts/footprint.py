@@ -19,7 +19,7 @@ common_logger_handler.setFormatter(logging.Formatter("%(asctime)s — FootPrint 
 
 
 WAZUH_METRICS = ['analysis']
-WAZUH_STATISTICS_PROCESS = ['wazuh-analysisd', 'wazuh-syscheckd', 'wazuh-logcollector']
+WAZUH_STATISTICS_PROCESS = ['ossec-analysisd', 'ossec-syscheckd', 'ossec-logcollector']
 DATA_UNIT = 'KB'
 STATISTICS_PATH = os.path.join('/tmp', 'footprint')
 EVENTS_CSV = 'events.csv'
