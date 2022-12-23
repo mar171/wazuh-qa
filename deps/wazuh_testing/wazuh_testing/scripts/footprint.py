@@ -20,7 +20,7 @@ common_logger_handler.setFormatter(logging.Formatter("%(asctime)s — FootPrint 
 
 WAZUH_METRICS = ['analysis']
 WAZUH_STATISTICS_PROCESS = ['wazuh-analysisd', 'wazuh-syscheckd', 'wazuh-logcollector']
-DATA_UNIT = 'B'
+DATA_UNIT = 'KB'
 STATISTICS_PATH = os.path.join('/tmp', 'footprint')
 EVENTS_CSV = 'events.csv'
 FOOTPRINT_CSV = 'footprint.csv'
@@ -32,7 +32,7 @@ DEFAULT_JSON_EVENT = '{"testing": "event"}'
 DEFAULT_SYSLOG_EVENT = "Dec 25 20:45:02 MyHost example[12345]: User 'admin' logged from '192.168.1.100'"
 ALERTS_JSON = '/var/ossec/logs/alerts/alerts.json'
 
-EXTRA_INTERVALS_TO_WAIT = 3
+EXTRA_INTERVALS_TO_WAIT = 5
 COUNTER_INTERVAL = 0
 
 global N_ALERTS_JSON
@@ -133,9 +133,11 @@ def write_csv_events_row(interval, syslog_server):
     interval_csv = COUNTER_INTERVAL * interval
     COUNTER_INTERVAL += 1
 
+    count = 0
     with open(ALERTS_JSON, 'r') as fp:
         for count, line in enumerate(fp):
             pass
+
     new_alerts = count - N_ALERTS_JSON
     N_ALERTS_JSON = count
 
@@ -183,7 +185,7 @@ def events_monitoring(time_limit, extra_interval, syslog_server, file_stress, in
         write_csv_events_row(interval, syslog_server)
 
 
-def create_footprint_csv_file(interval):
+def create_footprint_csv_file(interval, data_unit):
     with open('footprint.csv', 'w+') as footprint_file:
         csv_writer = csv.writer(footprint_file, delimiter=',')
         file_content = {}
@@ -194,7 +196,8 @@ def create_footprint_csv_file(interval):
                     file_content[file] = metric_file.readlines()
 
         # seconds, wazuh-daemon, CPU(%), RSS(KB), VMS(KB), disk_read(B), disk_written(B), FD
-        header = ['wazuh-daemon', 'seconds', 'CPU(%)', 'RSS(KB)', 'VMS(KB)', 'disk_read(B)', 'disk_written(B)', 'FD']
+        header = ['wazuh-daemon', 'seconds', 'CPU(%)', f'RSS({data_unit})', f'VMS({data_unit})',
+                  f'disk_read({data_unit})', f'disk_written({data_unit})', 'FD']
         csv_writer.writerow(header)
 
         # Remove header
@@ -205,9 +208,9 @@ def create_footprint_csv_file(interval):
                 line = file_content[key][i]
                 row_values = line.split(',')
                 daemon = row_values[0].replace('wazuh', 'ossec')
-                cpu = row_values[5]
-                rss = row_values[7]
-                vmss = row_values[6]
+                cpu = row_values[4]
+                rss = row_values[6]
+                vmss = row_values[5]
                 dis_read = row_values[13]
                 disk_written = row_values[14]
                 fd = row_values[10]
@@ -216,6 +219,8 @@ def create_footprint_csv_file(interval):
 
 
 def generate_charts():
+    global DATA_UNIT
+
     # Mute annoying warnings
     warnings.filterwarnings('ignore')
 
@@ -225,7 +230,7 @@ def generate_charts():
     # Generate the charts
     plot_syslog_alerts(syslog_alerts_data)
 
-    plot_footprint(FOOTPRINT_CSV, f"{date_time}")
+    plot_footprint(FOOTPRINT_CSV, f"{date_time}", DATA_UNIT)
 
 
 def get_parameters():
@@ -275,6 +280,7 @@ def get_parameters():
 
 def main():
     global N_ALERTS_JSON
+    global DATA_UNIT
 
     parameters = get_parameters()
     process_script_parameters(parameters)
@@ -285,10 +291,10 @@ def main():
     logger.addHandler(common_logger_handler)
 
     logger.info("Counting preliminary alerts")
+    count = 0
     with open(ALERTS_JSON, 'r') as fp:
         for count, line in enumerate(fp):
             pass
-
     N_ALERTS_JSON = count
 
     time_limit = time.time() + parameters.testing_time
@@ -332,7 +338,7 @@ def main():
 
     # Create a csv file with the footprint data
     logger.info("Creating footpring csv")
-    create_footprint_csv_file(parameters.interval)
+    create_footprint_csv_file(parameters.interval, DATA_UNIT)
 
     # Generating charts
     if parameters.generate_graphics:
