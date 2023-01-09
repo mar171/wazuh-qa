@@ -12,7 +12,7 @@ from re import compile
 from sys import platform
 from tempfile import gettempdir
 from threading import Thread, Event
-from time import sleep
+from time import sleep, time
 
 import psutil
 
@@ -205,8 +205,10 @@ class Monitor:
                 logger.error(f'Exception with {self.process_name} | {e}')
                 print(e.with_traceback())
             finally:
+                start = time()
                 self._write_csv(data)
-            sleep(self.time_step)
+                end = time()
+                sleep(self.time_step - (end - start))
 
     def run(self):
         """Run the event and thread monitoring functions."""

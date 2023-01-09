@@ -107,7 +107,10 @@ def remove_csv_extra_lines(csv_directory):
         with open(filepath, 'r') as metric_file:
             current_data = metric_file.readlines()
             lines_to_remove = len(current_data) - n_rows_events
-            new_file_content = current_data[:-lines_to_remove]
+            if lines_to_remove > 0:
+                new_file_content = current_data[:-lines_to_remove]
+            else:
+                new_file_content = current_data
 
         with open(filepath, 'w+') as metric_file:
             for line in new_file_content:
