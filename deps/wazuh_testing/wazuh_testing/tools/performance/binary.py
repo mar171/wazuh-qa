@@ -4,17 +4,18 @@
 
 import csv
 import logging
+import sched
+import time
+import psutil
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import makedirs
 from os.path import join, isfile
 from re import compile
 from sys import platform
 from tempfile import gettempdir
 from threading import Thread, Event
-from time import sleep, time
 
-import psutil
 
 logger = logging.getLogger('wazuh-monitor')
 logger.setLevel(logging.INFO)
@@ -197,18 +198,20 @@ class Monitor:
 
     def _monitor_process(self):
         """Private function that runs the function to extract data."""
+        start_time = datetime.now()
+        s = sched.scheduler(time.time, time.sleep)
+        iteration = 1
         while not self.event.is_set():
             data = dict()
             try:
-                start = time()
                 data = self.get_process_info(self.proc)
+                new_interval = (start_time + timedelta(seconds=self.time_step*iteration)).timestamp()
+                s.enterabs(new_interval, 0, self._write_csv, (data,))
             except Exception as e:
                 logger.error(f'Exception with {self.process_name} | {e}')
                 print(e.with_traceback())
-            finally:
-                self._write_csv(data)
-                end = time()
-                sleep(self.time_step - (end - start))
+            s.run()
+            iteration += 1
 
     def run(self):
         """Run the event and thread monitoring functions."""

@@ -1,12 +1,13 @@
 import argparse
 import time
+import sched
 import os
 import threading
 import logging
 import sys
 import csv
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 from sys import getsizeof
 
 from wazuh_testing.syslog.syslog_server import SyslogServer
@@ -141,6 +142,9 @@ def start_syslog_server(protocol, port, store_messages_filepath, debug):
 def write_csv_events_row(interval, syslog_server):
     global COUNTER_INTERVAL
     global N_ALERTS_JSON
+
+    current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+
     syslog_messages = reset_syslog_alerts(syslog_server)
     interval_csv = COUNTER_INTERVAL * interval
     COUNTER_INTERVAL += 1
@@ -153,8 +157,7 @@ def write_csv_events_row(interval, syslog_server):
     new_alerts = count - N_ALERTS_JSON
     N_ALERTS_JSON = count
 
-    write_csv_file(EVENTS_CSV, [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), interval_csv, syslog_messages,
-                                new_alerts])
+    write_csv_file(EVENTS_CSV, [current_date, interval_csv, syslog_messages, new_alerts])
 
 
 def init_processes_monitoring(interval):
@@ -176,15 +179,14 @@ def reset_syslog_alerts(syslog_server):
 
 
 def events_monitoring(time_limit, extra_interval, syslog_server, file_stress, interval):
-    current_time = datetime.now()
+    start_time = datetime.now().replace(microsecond=0)
+    s = sched.scheduler(time.time, time.sleep)
+    iteration = 1
     while time.time() <= time_limit:
-        time_interval_last = datetime.now()
-        if (time_interval_last - current_time).total_seconds() >= interval:
-
-            # Get syslog total messages received in the interval
-            write_csv_events_row(interval, syslog_server)
-
-            current_time = time_interval_last
+        new_interval = (start_time + timedelta(seconds=interval*iteration)).timestamp()
+        s.enterabs(new_interval, 0, write_csv_events_row, (interval, syslog_server,))
+        s.run()
+        iteration += 1
 
     # Stop alerts generation
     file_stress.stop()
@@ -345,8 +347,6 @@ def main():
 
     # Stop syslog server
     syslog_server.shutdown()
-
-    remove_csv_extra_lines(STATISTICS_PATH)
 
     # Create a csv file with the footprint data
     logger.info("Creating footpring csv")
