@@ -200,12 +200,12 @@ class Monitor:
         while not self.event.is_set():
             data = dict()
             try:
+                start = time()
                 data = self.get_process_info(self.proc)
             except Exception as e:
                 logger.error(f'Exception with {self.process_name} | {e}')
                 print(e.with_traceback())
             finally:
-                start = time()
                 self._write_csv(data)
                 end = time()
                 sleep(self.time_step - (end - start))
