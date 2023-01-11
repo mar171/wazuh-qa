@@ -182,7 +182,9 @@ def events_monitoring(time_limit, extra_interval, syslog_server, file_stress, in
     start_time = datetime.now().replace(microsecond=0)
     s = sched.scheduler(time.time, time.sleep)
     iteration = 1
-    while time.time() <= time_limit:
+    n_iterations = time_limit // interval
+
+    while iteration <= n_iterations:
         new_interval = (start_time + timedelta(seconds=interval*iteration)).timestamp()
         s.enterabs(new_interval, 0, write_csv_events_row, (interval, syslog_server,))
         s.run()
@@ -338,7 +340,8 @@ def main():
     write_csv_events_row(parameters.interval, syslog_server)
 
     # For each interval, get the total messages received in the interval and write it to the csv file
-    events_monitoring(time_limit, EXTRA_INTERVALS_TO_WAIT, syslog_server, file_stress_thread, parameters.interval)
+    events_monitoring(parameters.testing_time, EXTRA_INTERVALS_TO_WAIT, syslog_server, file_stress_thread,
+                      parameters.interval)
 
     # Stop monitors
     logger.info("Shutting down monitors")
