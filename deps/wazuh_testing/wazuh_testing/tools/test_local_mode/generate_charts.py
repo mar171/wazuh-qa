@@ -6,6 +6,7 @@ As preconditions, we have to have the following csv file data in the same script
 - syslog_alerts.csv
 - footprint.csv
 """
+import os
 import datetime
 import warnings
 import pandas as pd
@@ -41,20 +42,26 @@ def generate_simple_chart(x_data, y_data, legend_label=None, x_label=None, y_lab
     plt.clf()
 
 
-def plot_syslog_alerts(source_file):
+def plot_syslog_alerts(source_file, dir=None):
     """Generate the syslog alerts chart.
 
     Args:
         source_file (str): Source CSV file path.
         output_file_name (str): Output chart file name.
     """
+    path_syslog = 'syslog_alerts.png'
+    path_alerts = 'alerts.png'
+    if dir:
+        path_syslog = os.path.join(dir, 'syslog_alerts.png')
+        path_alerts = os.path.join(dir, 'alerts.png')
+
     dataframe = pd.read_csv(source_file)
 
     generate_simple_chart(dataframe['seconds'], dataframe['num_received_alerts'], x_label='Time (s)',
-                          y_label='Syslog Alerts', title='Syslog Alerts received', output='syslog_alerts.png')
+                          y_label='Syslog Alerts', title='Syslog Alerts received', output=path_syslog)
 
     generate_simple_chart(dataframe['seconds'], dataframe['num_alert_json'], x_label='Time (s)',
-                          y_label='Alerts', title='Alerts', output='alerts.png')
+                          y_label='Alerts', title='Alerts', output=path_alerts)
 
 
 def plot_footprint(source_file, output_file_name, unit):
