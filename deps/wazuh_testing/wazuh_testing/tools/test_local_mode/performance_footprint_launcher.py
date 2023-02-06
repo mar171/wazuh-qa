@@ -27,6 +27,7 @@ FOOTPRINT_CSV = 'footprint.csv'
 def wait_until_scan_is_over(file_monitor):
     file_monitor.start(timeout=600, callback=monitoring.make_callback("Ending syscheck scan", prefix=".*"))
 
+
 def enable_syscheck(configuration, directory, interval):
     new_configuration = configuration
     new_configuration += '<ossec_config>\n' + '<syscheck>\n' + \
@@ -130,7 +131,6 @@ def main():
         with open(MANAGER_CONFIGURATION_PATH, 'w') as f:
             f.write(new_configuration)
 
-
         # Restart the manager
         restart_command = '/var/ossec/bin/ossec-control restart'
         process = subprocess.Popen(restart_command.split(), stdout=subprocess.PIPE)
@@ -143,10 +143,21 @@ def main():
             # Wait until first scan is over
             wait_until_scan_is_over(file_monitor)
 
-        if module == 'logcollector' or (module=='syscheck' and syscheck_mode == 'realtime'):
+        syslog_parameters = ['--syslog-server-monitoring', '--syslog-server-port', str(1099),
+                             '--syslog-server-protocol', 'udp']
+        monitoring_parameters = ['--generate-footprint-graphics', '--alerts-monitoring', '--syslog-server-monitoring',
+                                 '--footprint-monitoring', '--report-path', results_dir]
+
+        if module == 'logcollector' or (module == 'syscheck' and syscheck_mode == 'realtime'):
             proc = None
             if module == 'logcollector':
-                proc = subprocess.Popen([PYTHON_PATH, analysis_script, "-i", str(interval), "-t", str(test_time), '--logcollector-monitoring', '--logcollector-path', '/tmp/testing-logcollector', '--logcollector-epi', str(events_update), '--syslog-server-monitoring', '--syslog-server-port', str(1099), '--syslog-server-protocol', 'udp', '--logcollector-fixed-event-size', str(event_size), '--generate-footprint-graphics', '--alerts-monitoring', '--syslog-server-monitoring', '--footprint-monitoring', '--report-path', results_dir],
+                logcollector_parameters = ['--logcollector-monitoring', '--logcollector-path',
+                                           '/tmp/testing-logcollector', '--logcollector-epi', str(events_update),
+                                           '--logcollector-fixed-event-size', str(event_size)]
+
+                proc = subprocess.Popen([PYTHON_PATH, analysis_script, "-i", str(interval), "-t", str(test_time),
+                                        '--logcollector-monitoring', '--logcollector-path', '/tmp/testing-logcollector',
+                '--logcollector-epi', str(events_update), '--logcollector-fixed-event-size', str(event_size), ,
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             elif module == 'syscheck':
                 proc = subprocess.Popen([PYTHON_PATH, analysis_script, "-i", str(interval), "-t", str(test_time), '--syscheck-monitoring', '--syscheck-path', '/tmp/testing-syscheck', '--syscheck-epi-file-create', str(events_creation), '--syscheck-epi-file-update', str(events_update), '--syscheck-epi-file-delete', str(events_delete), '--syslog-server-monitoring', '--syslog-server-port', str(1099), '--syslog-server-protocol', 'udp',  '--generate-footprint-graphics', '--alerts-monitoring', '--syslog-server-monitoring', '--footprint-monitoring', '--report-path', results_dir],
@@ -172,12 +183,7 @@ def main():
             print("Killed process")
             os.kill(proc2.pid, signal.SIGINT)
 
-        # shutil.copy(EVENTS_CSV, os.path.join(results_dir, EVENTS_CSV))
-        # shutil.copy(FOOTPRINT_CSV, os.path.join(results_dir, FOOTPRINT_CSV))
         shutil.copy('/var/ossec/logs/ossec.log', os.path.join(results_dir, 'ossec.log'))
-
-        # os.remove(EVENTS_CSV)
-        # os.remove(FOOTPRINT_CSV)
 
         with open('/var/ossec/logs/ossec.log', 'w') as log_file:
             log_file.write('')
