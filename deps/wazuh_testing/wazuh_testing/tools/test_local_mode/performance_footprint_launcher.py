@@ -27,7 +27,6 @@ FOOTPRINT_CSV = 'footprint.csv'
 def wait_until_scan_is_over(file_monitor):
     file_monitor.start(timeout=600, callback=monitoring.make_callback("Ending syscheck scan", prefix=".*"))
 
-
 def enable_syscheck(configuration, directory, interval):
     new_configuration = configuration
     new_configuration += '<ossec_config>\n' + '<syscheck>\n' + \
@@ -90,8 +89,10 @@ def main():
         results_dir = case['name']
 
         # Create results directory
-        if not os.path.exists(results_dir):
-            os.mkdir(case['name'])
+        shutil.rmtree(case['name'], ignore_errors=True)
+        # if not os.path.exists(results_dir):
+        os.mkdir(case['name'])
+        # else:
 
         # Create testing directories
         if not os.path.isdir('/tmp/testing-logcollector'):
@@ -101,10 +102,11 @@ def main():
 
         # Gather test case parameters
         module = case.get('module', 'logcollector')
-        event_size = case.get('events_size', 100)
+        event_size = case.get('events_size', 500)
         events_update = case.get('events_update', 0)
         events_create = case.get('events_create', 0)
         events_delete = case.get('events_delete', 0)
+        syscheck_mode = case.get('syscheck_mode', 'realtime')
         interval = case.get('interval', 1)
         files = case.get('files', 1)
         test_time = case.get('time', 60)
@@ -141,44 +143,41 @@ def main():
             # Wait until first scan is over
             wait_until_scan_is_over(file_monitor)
 
-        if module == 'logcollector':
-            proc = subprocess.Popen([PYTHON_PATH, analysis_script, "--epi-file-update",
-                                    str(events_update), "-i", str(interval), "-t", str(test_time), '--path',
-                                    '/tmp/testing-logcollector', '--syslog-server-port', str(1099),
-                                    '--syslog-server-protocol', 'udp', '--use-fixed-event-size', str(event_size)],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if module == 'logcollector' or (module=='syscheck' and syscheck_mode == 'realtime'):
+            proc = None
+            if module == 'logcollector':
+                proc = subprocess.Popen([PYTHON_PATH, analysis_script, "-i", str(interval), "-t", str(test_time), '--logcollector-monitoring', '--logcollector-path', '/tmp/testing-logcollector', '--logcollector-epi', str(events_update), '--syslog-server-monitoring', '--syslog-server-port', str(1099), '--syslog-server-protocol', 'udp', '--logcollector-fixed-event-size', str(event_size), '--generate-footprint-graphics', '--alerts-monitoring', '--syslog-server-monitoring', '--footprint-monitoring', '--report-path', results_dir],
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            elif module == 'syscheck':
+                proc = subprocess.Popen([PYTHON_PATH, analysis_script, "-i", str(interval), "-t", str(test_time), '--syscheck-monitoring', '--syscheck-path', '/tmp/testing-syscheck', '--syscheck-epi-file-create', str(events_creation), '--syscheck-epi-file-update', str(events_update), '--syscheck-epi-file-delete', str(events_delete), '--syslog-server-monitoring', '--syslog-server-port', str(1099), '--syslog-server-protocol', 'udp',  '--generate-footprint-graphics', '--alerts-monitoring', '--syslog-server-monitoring', '--footprint-monitoring', '--report-path', results_dir],
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = proc.communicate()
             if error:
                 print("Something go wrong")
-
+                print(f"Error: {error}")
             time.sleep(int(test_time) + 30)
         else:
-            proc = subprocess.Popen([PYTHON_PATH, analysis_script, "--epi-file-update",
-                                    str(events_update), "--epi-file-creation", str(events_create), "--epi-file-delete", str(events_delete), "-i", str(interval), "-t", '4', '--path',
-                                    '/tmp/testing-syscheck', '--syslog-server-port', str(1199),
-                                    '--syslog-server-protocol', 'udp', '--use-fixed-event-size', str(event_size)],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen([PYTHON_PATH, analysis_script, "-i", str(interval), "-t", str(2), '--syscheck-monitoring', '--syscheck-path', '/tmp/testing-syscheck', '--syscheck-epi-file-create', str(events_create), '--syscheck-epi-file-update', str(events_update), '--syscheck-epi-file-delete', str(events_delete),],
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             output, error = proc.communicate()
             print("Launch monitor")
 
-            proc2 = subprocess.Popen([PYTHON_PATH, analysis_script, "--epi-file-update",
-                                    str(0), "--epi-file-creation", str(0), "--epi-file-delete", str(0), "-i", str(interval), "-t", '4000000', '--path',
-                                    '/tmp/testing-syscheck', '--syslog-server-port', str(1099),
-                                    '--syslog-server-protocol', 'udp', '--use-fixed-event-size', str(event_size)],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc2 = subprocess.Popen([PYTHON_PATH, analysis_script, "-i", str(interval), "-t", str(40000),'--syslog-server-monitoring', '--syslog-server-port', str(1099), '--syslog-server-protocol', 'udp',  '--generate-footprint-graphics', '--syscheck-path', '/tmp/testing-syscheck', '--alerts-monitoring', '--syslog-server-monitoring', '--footprint-monitoring', '--report-path', results_dir],
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             wait_until_scan_is_over(file_monitor)
-            time.sleep(10)
+            time.sleep(60)
+
             print("Killed process")
             os.kill(proc2.pid, signal.SIGINT)
 
-        shutil.copy(EVENTS_CSV, os.path.join(results_dir, EVENTS_CSV))
-        shutil.copy(FOOTPRINT_CSV, os.path.join(results_dir, FOOTPRINT_CSV))
+        # shutil.copy(EVENTS_CSV, os.path.join(results_dir, EVENTS_CSV))
+        # shutil.copy(FOOTPRINT_CSV, os.path.join(results_dir, FOOTPRINT_CSV))
         shutil.copy('/var/ossec/logs/ossec.log', os.path.join(results_dir, 'ossec.log'))
 
-        os.remove(EVENTS_CSV)
-        os.remove(FOOTPRINT_CSV)
+        # os.remove(EVENTS_CSV)
+        # os.remove(FOOTPRINT_CSV)
 
         with open('/var/ossec/logs/ossec.log', 'w') as log_file:
             log_file.write('')

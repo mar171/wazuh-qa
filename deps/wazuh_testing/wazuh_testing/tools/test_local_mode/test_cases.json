@@ -1,0 +1,15 @@
+{
+    "test_cases":
+        [
+            {
+                "name": "LostEvents-Case-Huge",
+                "module": "logcollector",
+                "files": 1,
+                "time": 60,
+                "events_update": 500,
+                "interval": 1,
+                "event_size": 1000
+            }
+
+        ]
+}

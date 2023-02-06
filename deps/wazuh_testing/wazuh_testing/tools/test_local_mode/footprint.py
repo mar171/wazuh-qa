@@ -6,14 +6,16 @@ import threading
 import logging
 import sys
 import csv
+import signal
 import warnings
 from datetime import datetime, timedelta
 from sys import getsizeof
 
+from wazuh_testing.tools import monitoring
 from wazuh_testing.syslog.syslog_server import SyslogServer
 from wazuh_testing.tools.performance.binary import Monitor
 from wazuh_testing.tools.file_stress import FileStress
-from wazuh_testing.tools.test_local_mode.generate_charts import plot_syslog_alerts, plot_footprint
+from wazuh_testing.tools.test_local_mode.generate_charts import plot_alerts, plot_footprint
 
 common_logger_handler = logging.StreamHandler(sys.stdout)
 common_logger_handler.setFormatter(logging.Formatter("%(asctime)s — FootPrint —  %(levelname)s — %(message)s"))
@@ -36,7 +38,51 @@ EXTRA_INTERVALS_TO_WAIT = 5
 COUNTER_INTERVAL = 0
 
 global N_ALERTS_JSON
+global MONITORS
+global SYSLOG_SERVER
+global FILE_STRESS
 
+
+global FOOTPRINT_MONITORING
+global GENERATE_GRAPHICS
+global PARAMETERS
+
+def signal_handler(sig, frame):
+    global SYSLOG_SERVER
+    global MONITORS
+    global FILE_STRESS
+
+    global FOOTPRINT_MONITORING
+    global GENERATE_GRAPHICS
+    global PARAMETERS
+    global DATA_UNIT
+
+    # Stop monitors
+    for monitor in MONITORS:
+        monitor.shutdown()
+
+    # Stop syslog server
+    if SYSLOG_SERVER:
+        SYSLOG_SERVER.shutdown()
+
+    FILE_STRESS.stop_file_stress = True
+
+
+    # Create a csv file with the footprint data
+    if FOOTPRINT_MONITORING:
+        create_footprint_csv_file(PARAMETERS.interval, DATA_UNIT)
+
+    # Generating charts
+    if GENERATE_GRAPHICS:
+        generate_charts(PARAMETERS, PARAMETERS.report_path)
+
+
+
+
+
+    exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 def define_event(parameters):
     event_to_use = DEFAULT_SYSLOG_EVENT if parameters.event_type == 'syslog' else DEFAULT_JSON_EVENT
@@ -58,8 +104,9 @@ def define_event(parameters):
 
 def init_logger(debug=False, logger_name='Footprint'):
     logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.DEBUG if parameters.debug else logging.INFO)
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
     logger.addHandler(common_logger_handler)
+    return logger
 
 
 def clean_csv_results():
@@ -83,10 +130,10 @@ def clean_csv_results():
 def write_events_header(monitor_alerts=True, monitor_syslog=True):
     header = ['timestamp', 'seconds', 'epi']
 
-    if monitor_alerts:
-        header.append('num_alerts')
     if monitor_syslog:
         header.append('num_syslog')
+    if monitor_alerts:
+        header.append('num_alerts')
 
     write_csv_file(EVENTS_CSV, header)
 
@@ -139,13 +186,20 @@ def process_script_parameters(args):
     if args.interval <= 0:
         raise ValueError('Interval must be greater than 0')
 
-    path_list = args.path.split(',')
+    if args.logcollector_path:
+        logcollector_paths = args.logcollector_path.split(',')
+        for path in logcollector_paths:
+            if not (os.path.exists(path) and os.path.isdir(path)):
+                raise ValueError('Path must be a directory')
 
-    for path in path_list:
-        if not (os.path.exists(path) and os.path.isdir(path)):
-            raise ValueError('Path must be a directory')
+    if args.syscheck_path:
+        syscheck_paths = args.syscheck_path.split(',')
+        for path in syscheck_paths:
+            if not (os.path.exists(path) and os.path.isdir(path)):
+                raise ValueError('Path must be a directory')
 
-    if args.syscheck_envets and args.logcollector_events:
+
+    if args.syscheck_monitoring and args.logcollector_monitoring:
         raise ValueError('Only one type of events can be generated at the same time')
 
 
@@ -185,12 +239,12 @@ def write_csv_events_row(interval, epi, alerts_monitoring=True, syslog_monitorin
         N_ALERTS_JSON = lines_counter
 
     if alerts_monitoring and syslog_monitoring:
-        write_csv_file(EVENTS_CSV, [current_date, epi, interval_csv, syslog_messages, new_alerts])
+        write_csv_file(EVENTS_CSV, [current_date, interval_csv, epi, syslog_messages, new_alerts])
     else:
         if alerts_monitoring:
-            write_csv_file(EVENTS_CSV, [current_date, epi, interval_csv, new_alerts])
+            write_csv_file(EVENTS_CSV, [current_date, interval_csv, epi, new_alerts])
         if syslog_monitoring:
-            write_csv_file(EVENTS_CSV, [current_date, epi, interval_csv, syslog_messages])
+            write_csv_file(EVENTS_CSV, [current_date, interval_csv, epi, syslog_messages])
 
 
 def init_processes_monitoring(interval):
@@ -216,12 +270,15 @@ def events_monitoring(time_limit, epi, extra_interval, syslog_server, file_stres
     scheduler = sched.scheduler(time.time, time.sleep)
     iteration = 1
     n_iterations = time_limit // interval
+    print("Events monitoring")
+    print(n_iterations)
 
     while iteration <= n_iterations:
         new_interval = (start_time + timedelta(seconds=interval*iteration)).timestamp()
-        s.enterabs(new_interval, 0, write_csv_events_row, (interval, epi, syslog_server,))
+        scheduler.enterabs(new_interval, 0, write_csv_events_row, (interval, epi, True, True, syslog_server,))
         scheduler.run()
         iteration += 1
+    print("End file stress")
 
     # Stop alerts generation
     file_stress.stop()
@@ -231,11 +288,12 @@ def events_monitoring(time_limit, epi, extra_interval, syslog_server, file_stres
         time.sleep(interval)
 
         # Get syslog total messages received in the interval
-        write_csv_events_row(interval, epi, syslog_server)
+        write_csv_events_row(interval, 0, True, True, syslog_server)
 
 
 def create_footprint_csv_file(interval, data_unit):
-    with open('footprint.csv', 'w+') as footprint_file:
+    global FOOTPRINT_CSV
+    with open(FOOTPRINT_CSV, 'w+') as footprint_file:
         csv_writer = csv.writer(footprint_file, delimiter=',')
         file_content = {}
 
@@ -267,7 +325,7 @@ def create_footprint_csv_file(interval, data_unit):
                 csv_writer.writerow(row)
 
 
-def generate_charts(parameters):
+def generate_charts(parameters, directory=None):
     global DATA_UNIT
 
     # Mute annoying warnings
@@ -276,11 +334,11 @@ def generate_charts(parameters):
     date_time = datetime.now().strftime("%Y%m%d%H%M%S")
     syslog_alerts_data = EVENTS_CSV
 
-    # Plot basic charts
     if parameters.footprint_monitoring:
-        plot_footprint(FOOTPRINT_CSV, f"{date_time}", DATA_UNIT)
+        plot_footprint(FOOTPRINT_CSV, f"{date_time}", DATA_UNIT, directory)
 
-    plot_alerts(syslog_alerts_data, parameters.syslog_monitoring, alerts_monitoring)
+    if parameters.alerts_monitoring:
+        plot_alerts(syslog_alerts_data, parameters.alerts_monitoring, parameters.syslog_server_monitoring, directory)
 
 
 def get_parameters():
@@ -293,11 +351,11 @@ def get_parameters():
     arg_parser.add_argument('-i', '--interval', metavar='<interval>', type=int,
                             help='Set interval for data gathering', required=False, default=1, dest='interval')
 
-    arg_parser.add_argument('-d', '--debug', metavar='<debug>', action='store_true', default=False, dest='debug')
+    arg_parser.add_argument('-d', '--debug', action='store_true', default=False, dest='debug')
 
     # Syslog server parameters
-    arg_parser.add_argument('--syslog-server-monitoring', metavar='<syslog-server-monitoring>',
-                            action='store_true', default=False, dest='debug')
+    arg_parser.add_argument('--syslog-server-monitoring', action='store_true', default=False,
+                            dest='syslog_server_monitoring')
 
     arg_parser.add_argument('--syslog-server-protocol', metavar='<protocol>', type=str,
                             help='Syslog server protocol', required=False, default='udp', dest='syslog_server_protocol')
@@ -305,37 +363,37 @@ def get_parameters():
     arg_parser.add_argument('--syslog-server-port', metavar='<syslog-server-port>', type=int,
                             help='Syslog Server port', required=False, default=514, dest='syslog_server_port')
 
-    arg_parser.add_argument('--alerts-monitoring', metavar='<alerts-monitoring>', action='store_true', default=False,
-                            dest='debug')
+    arg_parser.add_argument('--alerts-monitoring', action='store_true', default=False,
+                            dest='alerts_monitoring')
 
-    arg_parser.add_argument('--footprint-monitoring', metavar='<footprint-monitoring>', action='store_true',
-                            default=False, dest='debug')
+    arg_parser.add_argument('--footprint-monitoring', action='store_true',
+                            default=False, dest='footprint_monitoring')
 
     # Events parameters Syscheck
-    arg_parser.add_argument('--syscheck-events', metavar='<syscheck-events>', action='store_true', default=False)
+    arg_parser.add_argument('--syscheck-monitoring', action='store_true', default=False)
 
     arg_parser.add_argument('--syscheck-path', metavar='<syscheck-path>', type=str,
                             help='Path to file creation for syscheck events',
                             required=False, default=None, dest='syscheck_path')
 
-    arg_parser.add_argument('--syscheck-epi-file-creation', metavar='<path>', type=int, default=0, required=False,
-                            help='EPS of the file creation event type', dest='epi_file_creation')
+    arg_parser.add_argument('--syscheck-epi-file-create', metavar='<path>', type=int, default=0, required=False,
+                            help='EPS of the file creation event type', dest='syscheck_epi_file_create')
 
     arg_parser.add_argument('--syscheck-epi-file-update', metavar='<path>', type=int, default=0, required=False,
-                            help='EPS of the file update event type', dest='epi_file_update')
+                            help='EPS of the file update event type', dest='syscheck_epi_file_update')
 
     arg_parser.add_argument('--syscheck-epi-file-delete', metavar='<path>', type=int, default=0, required=False,
-                            help='EPS of the file delete event type', dest='epi_file_delete')
+                            help='EPS of the file delete event type', dest='syscheck_epi_file_delete')
 
     # Events parameters Logcollector
-    arg_parser.add_argument('--logcollector-events', metavar='<syscheck-events>', action='store_true', default=False)
+    arg_parser.add_argument('--logcollector-monitoring', action='store_true', default=False)
 
     arg_parser.add_argument('--logcollector-path', metavar='<logcollector-path>', type=str,
                             help='Path to file creation for syscheck events',
                             required=False, default=None, dest='logcollector_path')
 
     arg_parser.add_argument('--logcollector-epi', metavar='<path>', type=int, default=0, required=False,
-                            help='EPS of the file delete event type', dest='epi_file_delete')
+                            help='EPS of the file delete event type', dest='logcollector_epi')
 
     arg_parser.add_argument('--logcollector-event-type', metavar='<event-type>', type=str, default='syslog',
                             required=False, help='Event type', dest='event_type')
@@ -343,9 +401,8 @@ def get_parameters():
     arg_parser.add_argument('--logcollector-fixed-event-size', metavar='<fixed-event-size>', type=int, default=None,
                             required=False, help='Use fixed event size', dest='fixed_event_size')
 
-    # arg_parser.add_argument('-f', '--filename-header', metavar='<filename>', type=str, default=None, required=False,
-    #                         help='Filename header', dest='filename_header')
-
+    arg_parser.add_argument('--report-path', metavar='<report-path>', type=str, default=None,
+                            required=False, help='Report and graphics path', dest='report_path')
     # Graphics parameters
     arg_parser.add_argument('--generate-footprint-graphics', action='store_true',
                             default=False, dest='generate_graphics')
@@ -356,10 +413,30 @@ def get_parameters():
 def main():
     global N_ALERTS_JSON
     global DATA_UNIT
+    global EVENTS_CSV
+    global FOOTPRINT_CSV
+
+    global FILE_STRESS
+    global MONITORS
+    global SYSLOG_SERVER
+
+    global GENERATE_GRAPHICS
+    global FOOTPRINT_MONITORING
+    global PARAMETERS
 
     parameters = get_parameters()
     process_script_parameters(parameters)
     logger = init_logger(parameters.debug)
+
+    GENERATE_GRAPHICS = parameters.generate_graphics
+    FOOTPRINT_MONITORING = parameters.footprint_monitoring
+    PARAMETERS = parameters
+
+
+
+    if parameters.report_path:
+        EVENTS_CSV = os.path.join(parameters.report_path, EVENTS_CSV)
+        FOOTPRINT_CSV = os.path.join(parameters.report_path, FOOTPRINT_CSV)
 
     logger.info("Counting preliminary alerts")
     count = 0
@@ -371,14 +448,16 @@ def main():
     time_limit = time.time() + parameters.testing_time
 
     # Defined used event
-    if parameters.logcollector_events:
+    if parameters.logcollector_monitoring:
         event = define_event(parameters)
         logger.debug(f"Defined logcollector event: {event}")
+    else:
+        event = 'A'*100
 
     # Init remote syslog server
     if parameters.syslog_server_monitoring:
         logger.info("Init remote syslog server")
-        syslog_server = start_syslog_server(protocol=parameters.syslog_server_protocol,
+        SYSLOG_SERVER = start_syslog_server(protocol=parameters.syslog_server_protocol,
                                             port=parameters.syslog_server_port,
                                             store_messages_filepath=None, debug=parameters.debug)
 
@@ -389,50 +468,51 @@ def main():
     # Get statistics of WAZUH_STATISTICS_PROCESS list
     if parameters.footprint_monitoring:
         logger.info("Init processes monitoring")
-        monitors = init_processes_monitoring(parameters.interval)
+        MONITORS = init_processes_monitoring(parameters.interval)
 
     # Init file stress thread
     logger.info("Init file stress thread")
 
-    if parameters.logcollector_events:
+    # Init events monitoring
+    if parameters.logcollector_monitoring:
         epi_file_update = parameters.logcollector_epi
+        path = parameters.logcollector_path
     else:
         epi_file_update = parameters.syscheck_epi_file_update
+        path = parameters.syscheck_path
 
-    file_stress_thread = start_file_stress(epi_file_creation=parameters.syscheck_epi_file_create,
-                                           epi_file_update=epi_file_update,
-                                           epi_file_delete=parameters.syscheck_epi_file_delete,
-                                           interval=parameters.interval, path=parameters.path.split(','),
-                                           debug=parameters.debug, event=event, add_counter_to_events=False)
+    FILE_STRESS = start_file_stress(epi_file_creation=parameters.syscheck_epi_file_create,
+                                        epi_file_update=epi_file_update,
+                                        epi_file_delete=parameters.syscheck_epi_file_delete,
+                                        interval=parameters.interval, path=path.split(','),
+                                        debug=parameters.debug, event=event, add_counter_to_events=False)
 
     if parameters.syslog_server_monitoring or parameters.alerts_monitoring:
         if parameters.logcollector_monitoring:
             epi = parameters.logcollector_epi
         else:
             epi = parameters.syscheck_epi_file_create + parameters.syscheck_epi_file_update + \
-                parameters.syscheck_epi_file_delete
+                  parameters.syscheck_epi_file_delete
 
         write_events_header(parameters.alerts_monitoring, parameters.syslog_server_monitoring)
-        # Set initial values - Get syslog total messages received in the interval
 
-        write_csv_events_row(parameters.interval, epi, syslog_server)
-        # For each interval, get the total messages received in the interval and write it to the csv file
-        events_monitoring(parameters.testing_time, epi, EXTRA_INTERVALS_TO_WAIT, syslog_server, file_stress_thread,
+        events_monitoring(parameters.testing_time, epi, EXTRA_INTERVALS_TO_WAIT, SYSLOG_SERVER, FILE_STRESS,
                           parameters.interval)
     else:
         logger.info(f"Waiting for testing time to finish: {parameters.testing_time} seconds")
         time.sleep(parameters.testing_time)
+        FILE_STRESS.stop()
 
     # Stop monitors
     if parameters.footprint_monitoring:
         logger.info("Shutting down monitors")
-        for monitor in monitors:
+        for monitor in MONITORS:
             monitor.shutdown()
 
     # Stop syslog server
     if parameters.syslog_server_monitoring:
         logger.info("Shutting down syslog server")
-        syslog_server.shutdown()
+        SYSLOG_SERVER.shutdown()
 
     # Create a csv file with the footprint data
     if parameters.footprint_monitoring:
@@ -442,7 +522,7 @@ def main():
     # Generating charts
     if parameters.generate_graphics:
         logger.info("Generating charts")
-        generate_charts(parameters)
+        generate_charts(parameters, parameters.report_path)
 
 
 if __name__ == '__main__':
